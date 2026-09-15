@@ -1,0 +1,5 @@
+const fs=require('fs');
+const s=fs.readFileSync(__dirname+'/../app.js','utf8');
+const required=['world_item_unlocked','world_area_unlocked','pet_wish_shown','pet_wish_skipped','delayed_consequence_created','delayed_consequence_triggered','recurring_expense_created','recurring_expense_paid','story_chain_started','story_chain_completed','long_term_goal_completed','optional_purchase_delayed','age_mode_experience_started','side_job_opened','side_job_started','side_job_completed','side_job_cancelled','side_job_limit_reached','side_job_energy_blocked','side_job_income_received'];
+for(const name of required){ if(!s.includes(`'${name}'`)&&!s.includes(`\"${name}\"`)) throw new Error(`missing analytics event ${name}`); }
+console.log('validate_analytics: OK');

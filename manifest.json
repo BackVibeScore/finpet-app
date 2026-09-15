@@ -1,0 +1,11 @@
+{
+  "name": "ФинПитомец",
+  "short_name": "ФинПитомец",
+  "description": "Игровой симулятор финансовых решений с виртуальным питомцем",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8F5EE",
+  "theme_color": "#F8F5EE",
+  "orientation": "portrait-primary"
+}

@@ -1,0 +1,7 @@
+.DS_Store
+*.zip
+demo_standalone.html
+assets/*.png
+tests/*_output.txt
+tests/strategy_*.txt
+tests/strategy_*.json
