@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = 'finpet_mvp_state_v1';
+  let welcomeDismissed = false;
   const introCopy = [
     {
       title: 'Это твой мир',
@@ -47,7 +48,7 @@
 
   function shouldShowWelcome() {
     const s = readState();
-    return !!s && !s.onboardingDone && Number(s.onboardingStep || 0) === 0;
+    return !welcomeDismissed && !!s && !s.onboardingDone && Number(s.onboardingStep || 0) === 0;
   }
 
   function mountWelcome() {
@@ -81,6 +82,7 @@
     document.body.appendChild(gate);
 
     const close = (skip = false) => {
+      welcomeDismissed = true;
       gate.classList.add('is-leaving');
       window.setTimeout(() => gate.remove(), 330);
       if (skip) {
