@@ -4,7 +4,7 @@
   const introCopy = [
     {
       title: 'Это твой мир',
-      text: 'Питомец, комната, монеты и первые решения — всё начнёт меняться с твоими действиями.',
+      text: 'Питомец, комната, монеты и первые решения — всё вокруг начнёт меняться из-за твоих действий.',
       art: 'assets/intro-world.svg',
       labelA: 'Твой питомец',
       labelB: 'Твой мир',
@@ -12,7 +12,7 @@
     },
     {
       title: 'Сейчас или потом?',
-      text: 'Монет на всё не хватит. Выбирай, что взять сегодня, а ради чего стоит подождать.',
+      text: 'На всё сразу монет не хватит. Выбирай, что взять сегодня, а ради чего стоит немного подождать.',
       art: 'assets/intro-choice.svg',
       labelA: 'Сейчас',
       labelB: 'Большая цель',
@@ -20,15 +20,15 @@
     },
     {
       title: 'Покупки меняют пространство',
-      text: 'Игрушки, мебель и большие цели появляются не только в списке — ты увидишь их вокруг питомца.',
+      text: 'Игрушки, мебель и большие цели появляются не только в списке — ты увидишь их рядом с питомцем.',
       art: 'assets/intro-room.svg',
       labelA: 'Было',
-      labelB: 'Стало',
+      labelB: 'Стало уютнее',
       button: 'Дальше'
     },
     {
       title: 'Каждая неделя открывает новое',
-      text: 'Комната, парк, город, события и новые возможности. Посмотрим, каким станет твой мир.',
+      text: 'Комната, парк, город, события и новые возможности. Посмотрим, каким станет твой мир дальше.',
       art: 'assets/intro-week.svg',
       labelA: 'Дом → парк',
       labelB: 'Новые события',
@@ -63,20 +63,20 @@
           <button class="welcome-skip" type="button" data-welcome-skip>Пропустить знакомство</button>
         </div>
         <div class="welcome-copy">
-          <span class="welcome-kicker">Игра про деньги, выбор и твой мир</span>
+          <span class="welcome-kicker">Игра про деньги, выбор и живой мир</span>
           <h1 class="welcome-title">Твой питомец.<br><strong>Твои решения.</strong></h1>
-          <p>Копи на мечты, меняй пространство и смотри, что происходит после каждого выбора.</p>
+          <p>Копи на мечты, меняй пространство и смотри, как каждое решение отражается на мире вокруг.</p>
         </div>
         <div class="welcome-art-card" aria-hidden="true">
           <img src="assets/welcome-hero.svg" alt="">
-          <span class="welcome-float coin">● 1000 монет</span>
+          <span class="welcome-float coin">1000 монет</span>
           <span class="welcome-float goal">Большая цель</span>
           <span class="welcome-float world">Мир меняется</span>
           <i class="welcome-spark s1"></i><i class="welcome-spark s2"></i>
         </div>
         <div class="welcome-actions">
           <button class="welcome-start" type="button" data-welcome-start>Начать игру</button>
-          <p class="welcome-note">Знакомство займёт меньше минуты — его можно пропустить.</p>
+          <p class="welcome-note">Знакомство займёт меньше минуты — и его можно пропустить.</p>
         </div>
       </div>`;
     document.body.appendChild(gate);
@@ -122,7 +122,7 @@
 
   function enhanceIntro() {
     const root = document.querySelector('.intro-onboarding');
-    if (!root || root.dataset.unpacked === '1' || !isInitialOnboarding()) return;
+    if (!root || !isInitialOnboarding()) return;
     const step = currentIntroStep(root);
     const view = introCopy[step] || introCopy[0];
     const visual = root.querySelector('.onboard-visual');
@@ -132,15 +132,20 @@
     const next = root.querySelector('[data-onboard-next]');
     if (!visual || !title || !text || !dots || !next) return;
 
-    root.dataset.unpacked = '1';
-    root.dataset.introStep = String(step);
-    title.textContent = view.title;
-    text.textContent = view.text;
-    next.textContent = view.button;
-    visual.innerHTML = `<div class="intro-art-frame"><img src="${view.art}" alt=""><span class="intro-art-label a">${view.labelA}</span><span class="intro-art-label b">${view.labelB}</span></div>`;
-    if (!root.querySelector('.intro-kicker')) {
-      dots.insertAdjacentHTML('afterend', `<span class="intro-kicker">Знакомство · ${step + 1}/${introCopy.length}</span>`);
+    if (root.dataset.introStep !== String(step)) {
+      root.dataset.introStep = String(step);
+      title.textContent = view.title;
+      text.textContent = view.text;
+      next.textContent = view.button;
+      visual.innerHTML = `<div class="intro-art-frame"><img src="${view.art}" alt=""><span class="intro-art-label a">${view.labelA}</span><span class="intro-art-label b">${view.labelB}</span></div>`;
+      let kicker = root.querySelector('.intro-kicker');
+      if (!kicker) {
+        dots.insertAdjacentHTML('afterend', `<span class="intro-kicker"></span>`);
+        kicker = root.querySelector('.intro-kicker');
+      }
+      if (kicker) kicker.textContent = `Знакомство · ${step + 1}/${introCopy.length}`;
     }
+
     addSwipe(root, next);
   }
 
