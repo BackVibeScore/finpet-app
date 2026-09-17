@@ -46,7 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app.js styles.css index.html sw.js tests/v6_requirements_smoke.js tests/v9_pet_ux_smoke.js
+          git add app.js styles.css index.html sw.js tests/v5_requirements_smoke.js tests/v6_requirements_smoke.js tests/v9_pet_ux_smoke.js
           if git diff --cached --quiet; then
             echo "No changes"
           else
