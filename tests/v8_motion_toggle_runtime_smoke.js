@@ -1,0 +1,17 @@
+const fs=require('fs');
+const app=fs.readFileSync('app.js','utf8');
+const css=fs.readFileSync('styles.css','utf8');
+const welcome=fs.readFileSync('welcome.css','utf8');
+const index=fs.readFileSync('index.html','utf8');
+const sw=fs.readFileSync('sw.js','utf8');
+const req=(ok,msg)=>{if(!ok)throw new Error(msg)};
+const motion=app.match(/function motionEnabled\(\)\{([\s\S]*?)\n  \}/)?.[1]||'';
+req(motion.includes('return state.settings?.motion!==false;'),'in-app motion toggle is not authoritative');
+req(!motion.includes('matchMedia'),'motionEnabled still depends on system reduced-motion');
+req(css.includes('V8 MOTION TOGGLE AUTHORITY'),'missing V8 motion override');
+req(css.includes('html[data-motion="on"] .pet-svg .pet-eyes'),'blink not restored when app motion is on');
+req(css.includes('html[data-motion="on"] .screen'),'screen transition not restored when app motion is on');
+req(welcome.includes('v8 explicit in-app motion override'),'welcome motion override missing');
+req(index.includes('app.js?v=20260917d')&&index.includes('styles.css?v=20260917d'),'runtime cache-bust missing');
+req(sw.includes("finpet-v8-motion-toggle-20260917d"),'service worker cache not bumped');
+console.log('v8_motion_toggle_runtime_smoke: OK');

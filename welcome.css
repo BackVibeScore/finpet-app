@@ -14,3 +14,11 @@
 .intro-onboarding .onboard-main{flex:1 0 auto}
 .intro-onboarding>.btn.block{flex:0 0 auto;position:relative;z-index:2;margin-top:18px}
 @media (max-height:740px){.intro-onboarding .onboard-main{align-content:start;padding-top:10px}.intro-onboarding .onboard-visual{height:min(28vh,210px);min-height:150px}}
+
+/* v8 explicit in-app motion override */
+@media (prefers-reduced-motion:reduce){
+html[data-motion="on"] .welcome-gate{animation:welcomeFade .38s ease-out both!important}
+html[data-motion="on"] .welcome-gate.is-leaving{animation:welcomeFadeOut .33s ease forwards!important}
+html[data-motion="on"] .welcome-art-card img,html[data-motion="on"] .intro-art-frame img,html[data-motion="on"] .splash-mark{animation:heroFloat 5.8s ease-in-out infinite!important}
+html[data-motion="on"] .welcome-spark{animation:sparkPulse 3.2s ease-in-out infinite!important}
+}

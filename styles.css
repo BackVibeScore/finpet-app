@@ -136,3 +136,20 @@ html[data-motion="off"] .screen,html[data-motion="off"] .onboarding,html[data-mo
 html[data-motion="off"] .btn,html[data-motion="off"] .action,html[data-motion="off"] .select-card,html[data-motion="off"] .choice,html[data-motion="off"] .menu button,html[data-motion="off"] .nav button,html[data-motion="off"] .chip,html[data-motion="off"] .work-entry,html[data-motion="off"] .help-list button{transition:none!important}
 @media(prefers-reduced-motion:reduce){.screen,.onboarding,.sheet,.pet-svg,.pet-body,.pet-eyes,.pet-tail,.world-decor,.artwork-object,.motion-feedback{animation:none!important;transition:none!important;transform:none!important}.btn,.action,.select-card,.choice,.menu button,.nav button,.chip,.work-entry,.help-list button{transition:none!important}}
 /* ===== END V7 ===== */
+
+
+/* ===== V8 MOTION TOGGLE AUTHORITY ===== */
+/* The in-app switch is authoritative. If the OS requests reduced motion but the user explicitly keeps Animation on, restore the product motion layer. */
+@media(prefers-reduced-motion:reduce){
+html[data-motion="on"] .screen,html[data-motion="on"] .onboarding{animation:screenEnterAlive .34s cubic-bezier(.2,.75,.2,1) both!important}
+html[data-motion="on"] .sheet{animation:sheetEnterAlive .28s cubic-bezier(.2,.75,.2,1) both!important}
+html[data-motion="on"] .pet-svg{animation:petFloatAlive 3.6s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.is-reacting{animation:petReactAlive .68s cubic-bezier(.2,.85,.25,1),petFloatAlive 3.6s .68s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-body{animation:petBreatheAlive 2.7s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-body{animation:petBreatheSad 3.8s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-eyes{animation:petBlinkAlive 5.2s var(--blink-delay,1.2s) ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-tail{animation:petTailAlive 3.2s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-happy .pet-tail{animation:petTailHappy 1.8s ease-in-out infinite!important}
+html[data-motion="on"] .btn,html[data-motion="on"] .action,html[data-motion="on"] .select-card,html[data-motion="on"] .choice,html[data-motion="on"] .menu button,html[data-motion="on"] .nav button,html[data-motion="on"] .chip,html[data-motion="on"] .work-entry,html[data-motion="on"] .help-list button,html[data-motion="on"] .save-controls button,html[data-motion="on"] .withdraw-options button,html[data-motion="on"] .parent-puzzle button{transition:transform .13s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background-color .18s ease,filter .18s ease!important}
+}
+/* ===== END V8 ===== */
