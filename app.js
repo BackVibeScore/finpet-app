@@ -2038,8 +2038,7 @@
   }
 
   function motionEnabled(){
-    const systemReduce=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    return state.settings?.motion!==false&&!systemReduce;
+    return state.settings?.motion!==false;
   }
   function syncMotionPreference(){
     const root=document?.documentElement; if(!root) return;
