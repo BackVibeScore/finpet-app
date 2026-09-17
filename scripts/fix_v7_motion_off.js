@@ -1,0 +1,10 @@
+const fs=require('fs');
+let css=fs.readFileSync('styles.css','utf8');
+const end='/* ===== END V7 ===== */';
+if(!css.includes(end)) throw new Error('V7 marker missing');
+const harden=`\nhtml[data-motion="off"] .screen,html[data-motion="off"] .onboarding,html[data-motion="off"] .sheet,html[data-motion="off"] .pet-svg,html[data-motion="off"] .pet-body,html[data-motion="off"] .pet-eyes,html[data-motion="off"] .pet-tail,html[data-motion="off"] .world-decor,html[data-motion="off"] .artwork-object,html[data-motion="off"] .motion-feedback{animation:none!important;transition:none!important;transform:none!important}\nhtml[data-motion="off"] .btn,html[data-motion="off"] .action,html[data-motion="off"] .select-card,html[data-motion="off"] .choice,html[data-motion="off"] .menu button,html[data-motion="off"] .nav button,html[data-motion="off"] .chip,html[data-motion="off"] .work-entry,html[data-motion="off"] .help-list button{transition:none!important}\n@media(prefers-reduced-motion:reduce){.screen,.onboarding,.sheet,.pet-svg,.pet-body,.pet-eyes,.pet-tail,.world-decor,.artwork-object,.motion-feedback{animation:none!important;transition:none!important;transform:none!important}.btn,.action,.select-card,.choice,.menu button,.nav button,.chip,.work-entry,.help-list button{transition:none!important}}\n`;
+if(!css.includes('html[data-motion="off"] .screen')) css=css.replace(end,harden+end);
+fs.writeFileSync('styles.css',css);
+let test=fs.readFileSync('tests/v7_motion_expression_smoke.js','utf8');
+if(!test.includes('hard motion-off override')) test=test.replace("console.log('v7_motion_expression_smoke: OK');",`req(css.includes('html[data-motion="off"] .screen'),'hard motion-off override missing');\nreq(css.includes('@media(prefers-reduced-motion:reduce){.screen,.onboarding,.sheet,.pet-svg'),'reduced-motion V7 override missing');\nconsole.log('v7_motion_expression_smoke: OK');`);
+fs.writeFileSync('tests/v7_motion_expression_smoke.js',test);
