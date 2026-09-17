@@ -8,3 +8,9 @@
 @media (max-width:390px){.welcome-gate{padding:14px}.welcome-shell{gap:14px}.welcome-title{font-size:38px}.welcome-copy p{font-size:16px}.welcome-art-card{min-height:284px;padding:12px}.welcome-art-card img{max-height:260px}.welcome-float{font-size:12px;padding:9px 11px}.intro-art-label{font-size:11px;padding:7px 10px}.intro-onboarding .onboard-visual{height:min(33vh,244px)}}
 /* v6 motion preference */
 [data-motion="off"] .welcome-gate,[data-motion="off"] .welcome-gate *,[data-motion="off"] .splash,[data-motion="off"] .splash *{animation:none!important;transition:none!important}
+
+/* Keep intro CTA in normal flow instead of letting the flexible content area shrink underneath it. */
+.intro-onboarding{overflow-y:auto}
+.intro-onboarding .onboard-main{flex:1 0 auto}
+.intro-onboarding>.btn.block{flex:0 0 auto;position:relative;z-index:2;margin-top:18px}
+@media (max-height:740px){.intro-onboarding .onboard-main{align-content:start;padding-top:10px}.intro-onboarding .onboard-visual{height:min(28vh,210px);min-height:150px}}
