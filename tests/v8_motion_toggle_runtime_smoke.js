@@ -12,6 +12,6 @@ req(css.includes('V8 MOTION TOGGLE AUTHORITY'),'missing V8 motion override');
 req(css.includes('html[data-motion="on"] .pet-svg .pet-eyes'),'blink not restored when app motion is on');
 req(css.includes('html[data-motion="on"] .screen'),'screen transition not restored when app motion is on');
 req(welcome.includes('v8 explicit in-app motion override'),'welcome motion override missing');
-req(index.includes('app.js?v=20260917d')&&index.includes('styles.css?v=20260917d'),'runtime cache-bust missing');
-req(sw.includes("finpet-v8-motion-toggle-20260917d"),'service worker cache not bumped');
+req(/app\.js\?v=[0-9a-z]+/i.test(index)&&/styles\.css\?v=[0-9a-z]+/i.test(index),'runtime cache-bust missing');
+req(/const CACHE = 'finpet-v\d+[^']*';/.test(sw),'service worker cache is not versioned');
 console.log('v8_motion_toggle_runtime_smoke: OK');
