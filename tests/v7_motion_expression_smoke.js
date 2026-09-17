@@ -10,4 +10,6 @@ req(css.includes('@keyframes petBreatheAlive'),'missing breathing animation');
 req(css.includes('@keyframes screenEnterAlive'),'missing screen transition');
 req(css.includes('.pet-svg.expression-sad'),'missing sad motion style');
 req(app.includes('data-toggle=\"motion\"'),'missing motion setting');
+req(css.includes('html[data-motion="off"] .screen'),'hard motion-off override missing');
+req(css.includes('@media(prefers-reduced-motion:reduce){.screen,.onboarding,.sheet,.pet-svg'),'reduced-motion V7 override missing');
 console.log('v7_motion_expression_smoke: OK');
