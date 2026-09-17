@@ -7,4 +7,6 @@ lines[start]='const settingsBlock=/<div class="settings-group"><div class="secti
 const repl=lines.findIndex((l,i)=>i>start&&l.startsWith('app=app.replace(settingsBlock'));
 if(repl<0)throw new Error('settings replacement line missing');
 lines[repl]='app=app.replace(settingsBlock,()=>{settingsCount++;return \'<div class="settings-group interface-settings">\';});';
-fs.writeFileSync(path,lines.join('\n'));
+let src=lines.join('\n');
+src=src.replace("req(app.includes('class=\"parent-quiz\"')&&app.includes(' + ${p.b} = ?'),'simplified parent check missing');","req(app.includes('class=\"parent-quiz\"')&&app.includes(\"type:'quick_sum'\"),'simplified parent check missing');");
+fs.writeFileSync(path,src);
