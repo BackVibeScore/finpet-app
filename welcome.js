@@ -59,13 +59,13 @@
     gate.innerHTML = `
       <div class="welcome-shell">
         <div class="welcome-topline">
-          <div class="welcome-brand">ФинПитомец</div>
+          <div class="welcome-brand">КопиХвост</div>
           <button class="welcome-skip" type="button" data-welcome-skip>Пропустить знакомство</button>
         </div>
         <div class="welcome-copy">
-          <span class="welcome-kicker">Игра про деньги, выбор и живой мир</span>
-          <h1 class="welcome-title">Твой питомец.<br><strong>Твои решения.</strong></h1>
-          <p>Копи на мечты, меняй пространство и смотри, как каждое решение отражается на мире вокруг.</p>
+          <span class="welcome-kicker">Игра про деньги и своего питомца</span>
+          <h1 class="welcome-title">Твой питомец.<br><strong>Твои деньги.</strong><br>Твои решения.</h1>
+          <p>Зарабатывай, трать, копи на цели и заботься о своём питомце.</p>
         </div>
         <div class="welcome-art-card" aria-hidden="true">
           <img src="assets/welcome-hero.svg" alt="">
@@ -154,7 +154,7 @@
     if (!splash || splash.dataset.vivid === '1') return;
     splash.dataset.vivid = '1';
     const p = splash.querySelector('p');
-    if (p) p.textContent = 'Игра. Выбор. Свой мир.';
+    if (p) p.textContent = 'Твои деньги. Твои решения.';
   }
 
   function refresh() {

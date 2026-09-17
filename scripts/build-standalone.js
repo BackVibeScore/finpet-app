@@ -43,7 +43,7 @@ const css = inlineAssets(`${read('styles.css')}\n${read('welcome.css')}`);
 const content = safeScript(read('content.js'));
 const app = safeScript(read('app.js'));
 const welcome = safeScript(inlineScriptAssets(read('welcome.js')));
-const title = (original.match(/<title>(.*?)<\/title>/i) || [null, 'ФинПитомец'])[1];
+const title = (original.match(/<title>(.*?)<\/title>/i) || [null, 'КопиХвост'])[1];
 
 const standalone = `<!doctype html>
 <html lang="ru">
