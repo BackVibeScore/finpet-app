@@ -1,0 +1,44 @@
+name: Assemble onboarding artwork
+
+on:
+  push:
+    branches:
+      - feat/visual-onboarding
+    paths:
+      - '.assetparts/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/visual-onboarding
+      - name: Assemble binary assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f .assetparts/READY ]; then
+            echo "Asset parts already consumed; nothing to do."
+            exit 0
+          fi
+          mkdir -p assets/premium
+          cat .assetparts/splash.*.txt | base64 --decode > assets/premium/kopihvost-splash.webp
+          cat .assetparts/sprite.*.txt | base64 --decode > assets/premium/onboarding-sprite.webp
+          file assets/premium/kopihvost-splash.webp assets/premium/onboarding-sprite.webp
+          rm -rf .assetparts
+      - name: Commit assembled artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- assets/premium .assetparts 2>/dev/null && [ -z "$(git status --porcelain assets/premium .assetparts 2>/dev/null)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/premium .assetparts
+          git commit -m "Add premium onboarding artwork"
+          git push origin HEAD:feat/visual-onboarding
