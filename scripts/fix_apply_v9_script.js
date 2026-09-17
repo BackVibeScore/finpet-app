@@ -1,0 +1,10 @@
+const fs=require('fs');
+const path='scripts/apply_v9_pet_ux.js';
+const lines=fs.readFileSync(path,'utf8').split('\n');
+const start=lines.findIndex(l=>l.startsWith('const settingsBlock='));
+if(start<0)throw new Error('settingsBlock line missing');
+lines[start]='const settingsBlock=/<div class="settings-group"><div class="section-title"><h2>Режим игры<\\/h2><\\/div><div class="difficulty-settings">[\\s\\S]*?<\\/div><\\/div><div class="settings-group interface-settings">/g;';
+const repl=lines.findIndex((l,i)=>i>start&&l.startsWith('app=app.replace(settingsBlock'));
+if(repl<0)throw new Error('settings replacement line missing');
+lines[repl]='app=app.replace(settingsBlock,()=>{settingsCount++;return \'<div class="settings-group interface-settings">\';});';
+fs.writeFileSync(path,lines.join('\n'));
