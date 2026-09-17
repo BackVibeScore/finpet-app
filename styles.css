@@ -167,4 +167,14 @@ html[data-motion="on"] .btn,html[data-motion="on"] .action,html[data-motion="on"
 .nav button[data-route="profile"]>.art{margin-top:2px;margin-bottom:0}
 .parent-quiz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 12px}.parent-answer{min-height:62px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);font-size:22px;font-weight:600}.parent-answer:active{transform:scale(.96)}.parent-gate-message{margin:8px 0;color:var(--muted)!important}
 html[data-motion="off"] .pet-ear,html[data-motion="off"] .pet-gaze,html[data-motion="off"] .pet-nose,html[data-motion="off"] .pet-cheeks,html[data-motion="off"] .pet-shadow,html[data-motion="off"] .pet-mouth{animation:none!important;transition:none!important;transform:none!important}
+html[data-motion="on"] .pet-svg .pet-ear-left{animation:petEarLeftV9 5.6s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-ear-right{animation:petEarRightV9 6.1s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-gaze{animation:petGazeV9 7.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-nose{animation:petNoseV9 2.7s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-cheeks{animation:petCheeksV9 3.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-shadow{animation:petShadowV9 3.6s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-happy .pet-mouth{animation:petMouthHappyV9 2.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-ear-left{animation-duration:7.4s!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-ear-right{animation-duration:7.9s!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!important}
 /* ===== END V9 ===== */

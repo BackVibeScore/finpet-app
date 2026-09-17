@@ -9,4 +9,6 @@ req(!app.includes('data-difficulty-change'),'difficulty switch must not exist in
 req(!app.includes('Режим можно изменить позже в настройках.'),'onboarding still promises settings difficulty switch');
 req(app.includes('class="parent-quiz"')&&app.includes("type:'quick_sum'"),'simplified parent check missing');
 req(css.includes('html[data-motion="off"] .pet-ear'),'motion off does not stop V9 pet micro-motion');
+req(css.includes('html[data-motion="on"] .pet-svg .pet-ear-left'),'explicit V9 motion-on override missing');
+req(css.includes('html[data-motion="on"] .pet-svg .pet-gaze'),'explicit V9 gaze motion-on override missing');
 console.log('v9_pet_ux_smoke: OK');
