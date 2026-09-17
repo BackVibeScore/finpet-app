@@ -1,0 +1,10 @@
+const fs=require('fs');
+let css=fs.readFileSync('styles.css','utf8');
+const marker='/* ===== END V9 ===== */';
+if(!css.includes(marker))throw new Error('V9 marker missing');
+const rules=`html[data-motion="on"] .pet-svg .pet-ear-left{animation:petEarLeftV9 5.6s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg .pet-ear-right{animation:petEarRightV9 6.1s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg .pet-gaze{animation:petGazeV9 7.4s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg .pet-nose{animation:petNoseV9 2.7s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg .pet-cheeks{animation:petCheeksV9 3.4s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg .pet-shadow{animation:petShadowV9 3.6s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg.expression-happy .pet-mouth{animation:petMouthHappyV9 2.4s ease-in-out infinite!important}\nhtml[data-motion="on"] .pet-svg.expression-sad .pet-ear-left{animation-duration:7.4s!important}\nhtml[data-motion="on"] .pet-svg.expression-sad .pet-ear-right{animation-duration:7.9s!important}\nhtml[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!important}\n`;
+if(!css.includes('html[data-motion="on"] .pet-svg .pet-ear-left'))css=css.replace(marker,rules+marker);
+fs.writeFileSync('styles.css',css);
+let test=fs.readFileSync('tests/v9_pet_ux_smoke.js','utf8');
+if(!test.includes('explicit V9 motion-on'))test=test.replace("console.log('v9_pet_ux_smoke: OK');","req(css.includes('html[data-motion=\"on\"] .pet-svg .pet-ear-left'),'explicit V9 motion-on override missing');\nreq(css.includes('html[data-motion=\"on\"] .pet-svg .pet-gaze'),'explicit V9 gaze motion-on override missing');\nconsole.log('v9_pet_ux_smoke: OK');");
+fs.writeFileSync('tests/v9_pet_ux_smoke.js',test);
