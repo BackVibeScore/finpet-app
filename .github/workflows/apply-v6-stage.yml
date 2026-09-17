@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/apply_v6_stage.js
       - scripts/v6_override.inc
+      - tests/runtime_smoke.js
       - .github/workflows/apply-v6-stage.yml
 permissions:
   contents: write
