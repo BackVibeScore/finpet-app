@@ -153,3 +153,28 @@ html[data-motion="on"] .pet-svg.expression-happy .pet-tail{animation:petTailHapp
 html[data-motion="on"] .btn,html[data-motion="on"] .action,html[data-motion="on"] .select-card,html[data-motion="on"] .choice,html[data-motion="on"] .menu button,html[data-motion="on"] .nav button,html[data-motion="on"] .chip,html[data-motion="on"] .work-entry,html[data-motion="on"] .help-list button,html[data-motion="on"] .save-controls button,html[data-motion="on"] .withdraw-options button,html[data-motion="on"] .parent-puzzle button{transition:transform .13s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background-color .18s ease,filter .18s ease!important}
 }
 /* ===== END V8 ===== */
+
+
+/* ===== V9 PET MICRO-MOTION + UX POLISH ===== */
+@keyframes petEarLeftV9{0%,68%,100%{transform:rotate(0)}72%{transform:rotate(-10deg)}76%{transform:rotate(5deg)}80%{transform:rotate(0)}}
+@keyframes petEarRightV9{0%,54%,100%{transform:rotate(0)}58%{transform:rotate(9deg)}62%{transform:rotate(-4deg)}66%{transform:rotate(0)}}
+@keyframes petGazeV9{0%,24%,48%,72%,100%{transform:translateX(0)}32%,40%{transform:translateX(2.3px)}56%,64%{transform:translateX(-2.3px)}}
+@keyframes petNoseV9{0%,100%{transform:translateY(0)}50%{transform:translateY(1.1px)}}
+@keyframes petCheeksV9{0%,100%{opacity:.74;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+@keyframes petMouthHappyV9{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.08)}}
+@keyframes petShadowV9{0%,100%{transform:scaleX(1);opacity:.16}45%,55%{transform:scaleX(.88);opacity:.11}}
+.pet-svg .pet-ear{transform-box:fill-box}.pet-svg .pet-ear-left{transform-origin:right bottom;animation:petEarLeftV9 5.6s ease-in-out infinite}.pet-svg .pet-ear-right{transform-origin:left bottom;animation:petEarRightV9 6.1s ease-in-out infinite}.pet-svg .pet-gaze{transform-box:fill-box;transform-origin:center;animation:petGazeV9 7.4s ease-in-out infinite}.pet-svg .pet-nose{transform-box:fill-box;transform-origin:center;animation:petNoseV9 2.7s ease-in-out infinite}.pet-svg .pet-cheeks{transform-box:fill-box;transform-origin:center;animation:petCheeksV9 3.4s ease-in-out infinite}.pet-svg .pet-shadow{transform-box:fill-box;transform-origin:center;animation:petShadowV9 3.6s ease-in-out infinite}.pet-svg.expression-happy .pet-mouth{transform-box:fill-box;transform-origin:center;animation:petMouthHappyV9 2.4s ease-in-out infinite}.pet-svg.expression-sad .pet-ear-left{animation-duration:7.4s}.pet-svg.expression-sad .pet-ear-right{animation-duration:7.9s}.pet-svg.expression-sad .pet-gaze{animation-duration:9s}
+.nav button[data-route="profile"]>.art{margin-top:2px;margin-bottom:0}
+.parent-quiz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 12px}.parent-answer{min-height:62px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);font-size:22px;font-weight:600}.parent-answer:active{transform:scale(.96)}.parent-gate-message{margin:8px 0;color:var(--muted)!important}
+html[data-motion="off"] .pet-ear,html[data-motion="off"] .pet-gaze,html[data-motion="off"] .pet-nose,html[data-motion="off"] .pet-cheeks,html[data-motion="off"] .pet-shadow,html[data-motion="off"] .pet-mouth{animation:none!important;transition:none!important;transform:none!important}
+html[data-motion="on"] .pet-svg .pet-ear-left{animation:petEarLeftV9 5.6s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-ear-right{animation:petEarRightV9 6.1s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-gaze{animation:petGazeV9 7.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-nose{animation:petNoseV9 2.7s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-cheeks{animation:petCheeksV9 3.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg .pet-shadow{animation:petShadowV9 3.6s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-happy .pet-mouth{animation:petMouthHappyV9 2.4s ease-in-out infinite!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-ear-left{animation-duration:7.4s!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-ear-right{animation-duration:7.9s!important}
+html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!important}
+/* ===== END V9 ===== */
