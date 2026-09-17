@@ -5,7 +5,7 @@ function boot(st){const app={innerHTML:'',querySelectorAll:()=>[],querySelector:
 function assert(c,m){if(!c)throw new Error(m)}
 function finishShift(dev,id='sort_orders'){const a=dev.getContent().workActivities.find(x=>x.id===id);dev.work.start(id);let s=dev.getState();assert(s.workSession?.activityId===id,'work session not started');for(const step of a.steps)dev.work.sort(step.bin);}
 let r=boot(seed()),dev=r.dev;
-assert(dev.version===5,'dev version must be 5');
+assert(dev.version===6,'dev version must be 6');
 assert(dev.getContent().workActivities.length===2,'work activities content missing');
 finishShift(dev);let s=dev.getState();
 assert(s.wallet.balance===370,'reward not added to wallet');
