@@ -5,6 +5,7 @@ on:
       - feat/pet-ux-polish-v9
     paths:
       - scripts/apply_v9_pet_ux.js
+      - scripts/fix_apply_v9_script.js
       - .github/workflows/apply-v9-pet-ux.yml
 permissions:
   contents: write
@@ -20,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Repair patch matcher
+        run: node scripts/fix_apply_v9_script.js
       - name: Apply V9 UX patch
         run: node scripts/apply_v9_pet_ux.js
       - name: Syntax checks
