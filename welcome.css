@@ -6,3 +6,5 @@
 @keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}@keyframes sparkPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.7}}@keyframes welcomeFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}@keyframes welcomeFadeOut{to{opacity:0;transform:translateY(8px)}}
 @media (prefers-reduced-motion:reduce){.welcome-gate,.welcome-gate *,.splash,.splash *{animation:none!important;transition:none!important}}
 @media (max-width:390px){.welcome-gate{padding:14px}.welcome-shell{gap:14px}.welcome-title{font-size:38px}.welcome-copy p{font-size:16px}.welcome-art-card{min-height:284px;padding:12px}.welcome-art-card img{max-height:260px}.welcome-float{font-size:12px;padding:9px 11px}.intro-art-label{font-size:11px;padding:7px 10px}.intro-onboarding .onboard-visual{height:min(33vh,244px)}}
+/* v6 motion preference */
+[data-motion="off"] .welcome-gate,[data-motion="off"] .welcome-gate *,[data-motion="off"] .splash,[data-motion="off"] .splash *{animation:none!important;transition:none!important}
