@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '22'
       - name: Apply v6 patch
-        run: node scripts/apply_v6_stage.js
+        run: node -e 'global.oldAge="${oldAge}"; require("./scripts/apply_v6_stage.js")'
       - name: Syntax checks
         run: |
           node --check app.js
