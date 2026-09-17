@@ -1,4 +1,4 @@
-const CACHE = 'finpet-v6-motion-runtime-20260917b';
+const CACHE = 'finpet-v7-live-pet-20260917c';
 const ASSETS = ['./','./index.html','./styles.css','./welcome.css','./content.js','./app.js','./welcome.js','./manifest.json','./assets/objects.webp','./assets/extras.webp','./assets/worlds.webp','./assets/welcome-hero.svg','./assets/intro-world.svg','./assets/intro-choice.svg','./assets/intro-room.svg','./assets/intro-week.svg'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
