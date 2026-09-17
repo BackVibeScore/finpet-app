@@ -9,4 +9,8 @@ if(repl<0)throw new Error('settings replacement line missing');
 lines[repl]='app=app.replace(settingsBlock,()=>{settingsCount++;return \'<div class="settings-group interface-settings">\';});';
 let src=lines.join('\n');
 src=src.replace("req(app.includes('class=\"parent-quiz\"')&&app.includes(' + ${p.b} = ?'),'simplified parent check missing');","req(app.includes('class=\"parent-quiz\"')&&app.includes(\"type:'quick_sum'\"),'simplified parent check missing');");
+const marker="const v9test=`const fs=require('fs');";
+if(!src.includes(marker))throw new Error('v9test marker missing');
+const v5Patch=`let v5=fs.readFileSync('tests/v5_requirements_smoke.js','utf8');\nv5=mustReplace(v5,\"assert(!r.dev.adult.completeHold(3000)&&!r.dev.adult.isUnlocked(),'legacy hold must not unlock adult section');const puzzle=r.dev.adult.getPuzzle();for(const id of puzzle.correct){assert(r.dev.adult.choosePuzzle(id),'correct parent puzzle step failed');}assert(r.dev.adult.isUnlocked(),'parent puzzle did not unlock adult section');\",\"assert(!r.dev.adult.completeHold(3000)&&!r.dev.adult.isUnlocked(),'legacy hold must not unlock adult section');const puzzle=r.dev.adult.getPuzzle();assert(r.dev.adult.choosePuzzle(String(puzzle.correct)),'correct parent check failed');assert(r.dev.adult.isUnlocked(),'parent check did not unlock adult section');\",'v5 parent gate test');\nfs.writeFileSync('tests/v5_requirements_smoke.js',v5);\n\n`;
+if(!src.includes("v5 parent gate test"))src=src.replace(marker,v5Patch+marker);
 fs.writeFileSync(path,src);
