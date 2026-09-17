@@ -7,6 +7,7 @@ on:
       - scripts/apply_v6_stage.js
       - scripts/v6_override.inc
       - scripts/fix_v6_goal_unlock.js
+      - scripts/fix_v6_migration_event.js
       - tests/runtime_smoke.js
       - .github/workflows/apply-v6-stage.yml
 permissions:
@@ -27,6 +28,7 @@ jobs:
         run: |
           node -e 'global.oldAge="${oldAge}"; require("./scripts/apply_v6_stage.js")'
           node scripts/fix_v6_goal_unlock.js
+          node scripts/fix_v6_migration_event.js
       - name: Syntax checks
         run: |
           node --check app.js
