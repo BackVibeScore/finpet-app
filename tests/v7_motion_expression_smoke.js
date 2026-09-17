@@ -1,0 +1,15 @@
+const fs=require('fs');
+const app=fs.readFileSync('app.js','utf8');
+const css=fs.readFileSync('styles.css','utf8');
+const req=(ok,msg)=>{if(!ok)throw new Error(msg)};
+req(app.includes("const expression=(moodAverage>=70&&moodWeakest>=45)?'happy'"),'missing expression thresholds');
+req(app.includes('pet-eyes'),'missing animated eye group');
+req(app.includes('pet-tail'),'missing tail');
+req(css.includes('@keyframes petBlinkAlive'),'missing blink animation');
+req(css.includes('@keyframes petBreatheAlive'),'missing breathing animation');
+req(css.includes('@keyframes screenEnterAlive'),'missing screen transition');
+req(css.includes('.pet-svg.expression-sad'),'missing sad motion style');
+req(app.includes('data-toggle=\"motion\"'),'missing motion setting');
+req(css.includes('html[data-motion="off"] .screen'),'hard motion-off override missing');
+req(css.includes('@media(prefers-reduced-motion:reduce){.screen,.onboarding,.sheet,.pet-svg'),'reduced-motion V7 override missing');
+console.log('v7_motion_expression_smoke: OK');
