@@ -10,7 +10,12 @@ req(app.includes('pet-art-layer')&&app.includes('pet-layered'),'detailed layered
 req(app.includes('petRenderSeq')&&app.includes('clipPath id="${rid}-body"'),'unique per-render clip ids missing');
 req(app.includes('pet-accessory-slot')&&app.includes('data-slot="${slot}"'),'accessory slot renderer missing');
 for(const slot of ['slot-head','slot-face','slot-neck','slot-chest','slot-back']) req(css.includes(slot),'missing accessory slot '+slot);
-for(const type of ['cat','dog','mumo']) req(content.includes('assets/pets/'+type+'.webp'),'missing '+type+' art mapping');
+for(const type of ['cat','dog','mumo']){
+  const asset='assets/pets/'+type+'.webp';
+  req(content.includes(asset),'missing '+type+' art mapping');
+  req(fs.existsSync(asset),'missing '+asset);
+  req(fs.statSync(asset).size>20000,asset+' is unexpectedly small');
+}
 for(const id of ['none','cap','scarf','badge','glasses','headphones','bow','backpack']) req(content.includes("id:'"+id+"'"),'accessory '+id+' lost');
 req(app.includes("const expression=(moodAverage>=70&&moodWeakest>=45)?'happy'"),'expression thresholds changed');
 req(css.includes('V11 LAYERED PREMIUM PETS'),'V11 CSS missing');
