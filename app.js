@@ -762,7 +762,7 @@
       app.querySelector('[data-age-next]').onclick = () => { state.onboardingStep = 5; save(); render(); };
       return;
     }
-    app.innerHTML = `<section class="onboarding"><div class="brand">КопиХвост</div><div class="onboard-main" style="align-content:start;padding-top:25px"><div><div class="eyebrow">Шаг 2 из 2</div><h1>${state.ageGroup === '15-17' ? 'Выбери компаньона' : 'Создай друга'}</h1><p>${state.ageGroup === '15-17' ? 'Персонаж останется частью мира, но не будет диктовать финансовые решения.' : 'Выбери характер, цвет и маленькую деталь.'}</p></div><div class="pet-grid">${C.pets.map(p => `<button class="select-card pet-pick ${state.pet.type === p.id ? 'active' : ''}" data-pet="${p.id}">${petSVG(p.id, state.pet.color, state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label>Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Основной цвет</label><div class="color-row">${C.petColors.map(c => `<button class="color-dot ${state.pet.color === c ? 'active' : ''}" style="background:${c}" data-color="${c}" aria-label="Цвет"></button>`).join('')}</div></div><div class="field"><label>Аксессуар</label><select id="accessory">${C.accessories.map(a => `<option value="${a.id}" ${state.pet.accessory === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div></div><button class="btn primary block" data-start>Получить 1000 монет</button></section>`;
+    app.innerHTML = `<section class="onboarding"><div class="brand">КопиХвост</div><div class="onboard-main" style="align-content:start;padding-top:25px"><div><div class="eyebrow">Шаг 2 из 2</div><h1>${state.ageGroup === '15-17' ? 'Выбери компаньона' : 'Создай друга'}</h1><p>${state.ageGroup === '15-17' ? 'Персонаж останется частью мира, но не будет диктовать финансовые решения.' : 'Выбери характер, цвет и маленькую деталь.'}</p></div><div class="pet-grid">${C.pets.map(p => `<button class="select-card pet-pick ${state.pet.type === p.id ? 'active' : ''}" data-pet="${p.id}">${petSVG(p.id, state.pet.color, state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label>Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Цвет акцента</label><div class="color-row">${C.petColors.map(c => `<button class="color-dot ${state.pet.color === c ? 'active' : ''}" style="background:${c}" data-color="${c}" aria-label="Цвет"></button>`).join('')}</div></div><div class="field"><label>Аксессуар</label><select id="accessory">${C.accessories.map(a => `<option value="${a.id}" ${state.pet.accessory === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div></div><button class="btn primary block" data-start>Получить 1000 монет</button></section>`;
     app.querySelectorAll('[data-pet]').forEach(b => b.onclick = () => { state.pet.type = b.dataset.pet; save(); render(); });
     app.querySelectorAll('[data-color]').forEach(b => b.onclick = e => { e.preventDefault(); state.pet.color = b.dataset.color; save(); render(); });
     app.querySelector('#accessory').onchange = e => { state.pet.accessory = e.target.value; save(); };
@@ -1812,37 +1812,96 @@
     return migrated;
   }
 
+  // V11 layered character renderer: detailed base art + independently animated regions + accessory anchors.
+  let petRenderSeq=0;
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
-    const face=type==='dog'
-      ? `<g class="pet-ears pet-ears-dog"><path class="pet-ear pet-ear-left" d="M48 75 C32 52 31 31 48 28 C58 27 66 39 70 51" fill="#71564b"/><path class="pet-ear pet-ear-right" d="M152 75 C168 52 169 31 152 28 C142 27 134 39 130 51" fill="#71564b"/></g>`
-      : type==='cat'
-        ? `<g class="pet-ears pet-ears-cat"><path class="pet-ear pet-ear-left" d="M49 62 L53 25 L78 52 Z" fill="${color}"/><path class="pet-ear pet-ear-right" d="M151 62 L147 25 L122 52 Z" fill="${color}"/></g>`
-        : `<g class="pet-ears pet-ears-mumo"><path class="pet-ear pet-ear-left" d="M58 54 C42 35 47 22 59 31 L76 52 Z" fill="${color}"/><path class="pet-ear pet-ear-right" d="M142 54 C158 35 153 22 141 31 L124 52 Z" fill="${color}"/></g>`;
-    const extra=type==='mumo'?`<g class="pet-forehead"><circle cx="100" cy="52" r="10" fill="#fff" opacity=".85"/><circle cx="100" cy="52" r="4" fill="#26314c"/></g>`:'';
-    const y=type==='dog'?4:type==='mumo'?-1:0;
+    const petType=['cat','dog','mumo'].includes(type)?type:'cat';
+    const accent=/^#[0-9a-f]{6}$/i.test(String(color||''))?color:(C.petColors?.[0]||'#F0A56B');
+    const petMeta=C.pets.find(p=>p.id===petType)||C.pets[0];
+    const art=`${petMeta?.art||`assets/pets/${petType}.webp`}?v=20260918d`;
+    const rid=`petv11-${++petRenderSeq}`;
+    const layouts={
+      cat:{
+        head:'<ellipse cx="321" cy="277" rx="228" ry="194"/>',
+        body:'<path d="M139 345 C178 319 232 323 320 329 C412 321 482 340 512 402 C542 463 537 610 501 702 C475 761 405 784 320 780 C227 785 159 756 131 697 C99 627 102 441 139 345Z"/>',
+        earL:'<path d="M62 85 C83 28 161 20 238 143 L246 255 L107 260 C70 210 48 145 62 85Z"/>',
+        earR:'<path d="M397 143 C469 23 553 28 580 87 C594 144 571 213 535 260 L397 256Z"/>',
+        tail:'<path d="M16 366 C53 322 130 332 175 380 C220 429 211 493 176 535 C145 571 142 621 181 654 C132 701 63 683 33 630 C2 575 26 526 54 490 C82 454 69 417 16 366Z"/>',
+        eyeY:287,mouthY:374,browY:229,cheekY:360
+      },
+      dog:{
+        head:'<ellipse cx="320" cy="287" rx="230" ry="190"/>',
+        body:'<path d="M143 365 C183 334 238 333 321 339 C408 332 472 349 506 408 C542 470 531 621 498 704 C469 760 404 783 320 779 C230 783 163 756 135 700 C101 630 105 455 143 365Z"/>',
+        earL:'<path d="M43 142 C77 73 154 70 236 170 C242 234 217 316 145 359 C78 347 42 302 37 239 C34 202 34 169 43 142Z"/>',
+        earR:'<path d="M404 168 C484 75 566 78 599 144 C609 181 608 232 594 269 C574 323 526 349 474 351 C424 314 399 236 404 168Z"/>',
+        tail:'<path d="M14 404 C57 365 124 379 177 423 C219 458 233 506 209 547 C184 591 129 599 94 575 C126 543 126 506 99 480 C73 455 41 441 14 404Z"/>',
+        eyeY:294,mouthY:378,browY:236,cheekY:363
+      },
+      mumo:{
+        head:'<ellipse cx="321" cy="285" rx="235" ry="198"/><circle cx="255" cy="103" r="67"/><circle cx="389" cy="91" r="65"/>',
+        body:'<path d="M139 364 C181 329 239 332 320 337 C407 330 475 351 509 414 C541 473 534 620 500 705 C473 762 404 784 320 780 C231 784 160 758 133 700 C99 629 103 455 139 364Z"/>',
+        earL:'<path d="M24 174 C53 112 131 100 234 182 C244 246 210 322 131 350 C69 343 31 309 16 257 C7 225 8 197 24 174Z"/>',
+        earR:'<path d="M407 180 C504 107 580 115 616 178 C632 211 632 245 618 277 C595 329 548 352 490 351 C426 316 397 246 407 180Z"/>',
+        tail:'<path d="M12 454 C45 410 110 412 180 457 C221 485 229 536 202 576 C170 623 111 632 65 603 C89 569 85 535 59 510 C39 490 23 475 12 454Z"/>',
+        eyeY:290,mouthY:378,browY:230,cheekY:362
+      }
+    };
+    const l=layouts[petType];
     const moodValues=['satiety','mood','energy','care'].map(k=>Number(state.pet?.[k]??0));
     const moodAverage=moodValues.reduce((sum,n)=>sum+n,0)/Math.max(1,moodValues.length);
     const moodWeakest=Math.min(...moodValues);
     const expression=(moodAverage>=70&&moodWeakest>=45)?'happy':((moodAverage<45||moodWeakest<25)?'sad':'neutral');
-    const expressionMarkup=expression==='happy'
-      ? '<g class="pet-expression pet-expression-happy"><path class="pet-mouth" d="M87 116 Q100 132 113 116" stroke="#26314c" stroke-width="4" fill="none" stroke-linecap="round"/></g>'
-      : expression==='sad'
-        ? '<g class="pet-expression pet-expression-sad"><path class="pet-mouth" d="M88 126 Q100 112 112 126" stroke="#26314c" stroke-width="4" fill="none" stroke-linecap="round"/><path class="pet-brows" d="M67 86 Q76 81 84 87M116 87 Q124 81 133 86" stroke="#26314c" stroke-width="3" fill="none" stroke-linecap="round"/></g>'
-        : '<g class="pet-expression pet-expression-neutral"><path class="pet-mouth" d="M91 120 Q100 122 109 120" stroke="#26314c" stroke-width="4" fill="none" stroke-linecap="round"/></g>';
-    const tail=type==='mumo'?'':(type==='dog'
-      ? '<path class="pet-tail" d="M148 133 Q176 127 170 105 Q166 94 157 100" fill="none" stroke="'+color+'" stroke-width="15" stroke-linecap="round"/>'
-      : '<path class="pet-tail" d="M149 137 Q181 137 178 109 Q176 91 160 91" fill="none" stroke="'+color+'" stroke-width="14" stroke-linecap="round"/>');
-    const behind=accessory==='backpack'?`<g transform="translate(0 ${y})"><path d="M40 89 Q24 94 28 143 Q30 163 51 160 L58 102Z" fill="#b45e3d"/><path d="M160 89 Q176 94 172 143 Q170 163 149 160 L142 102Z" fill="#b45e3d"/><path d="M39 101 Q52 80 67 83" fill="none" stroke="#6b3d2d" stroke-width="6"/></g>`:'';
-    const accessories={
-      cap:`<g transform="translate(0 ${y})"><path d="M62 50 Q100 28 138 50 L130 61 H67 Z" fill="#285441"/><path d="M127 56 Q153 56 158 66 Q139 67 124 64Z" fill="#285441"/></g>`,
-      scarf:'<path d="M57 137 Q100 151 143 137 L139 153 Q101 165 61 151Z" fill="#c86f48"/><path d="M119 149 L136 181 L119 184 L108 154Z" fill="#c86f48"/>',
-      badge:'<circle cx="135" cy="139" r="10" fill="#e7c76b"/><path d="M135 133 l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8z" fill="#765516"/>',
-      glasses:`<g transform="translate(0 ${y})" fill="none" stroke="#31473d" stroke-width="4"><rect x="60" y="88" width="34" height="23" rx="10"/><rect x="106" y="88" width="34" height="23" rx="10"/><path d="M94 97 Q100 93 106 97M60 95 L49 91M140 95 L151 91"/></g>`,
-      headphones:`<g transform="translate(0 ${y})"><path d="M55 98 Q55 55 100 55 Q145 55 145 98" fill="none" stroke="#3f5c72" stroke-width="8"/><rect x="47" y="91" width="17" height="35" rx="8" fill="#d27a52"/><rect x="136" y="91" width="17" height="35" rx="8" fill="#d27a52"/></g>`,
-      bow:`<g transform="translate(0 ${y})"><path d="M99 139 Q76 122 65 139 Q77 158 99 147Z" fill="#b45e6b"/><path d="M101 139 Q124 122 135 139 Q123 158 101 147Z" fill="#b45e6b"/><circle cx="100" cy="143" r="7" fill="#7d3948"/></g>`,
-      backpack:''
+    const accessoryMeta=C.accessories.find(a=>a.id===accessory);
+    const slot=accessoryMeta?.slot||({cap:'head',headphones:'head',glasses:'face',scarf:'neck',bow:'neck',badge:'chest',backpack:'back'}[accessory]||'none');
+    const accessoryShapes={
+      cap:`<g class="pet-accessory-shape pet-cap"><path d="M192 208 Q320 111 449 207 L430 251 Q321 222 204 253Z" fill="url(#${rid}-accent)"/><path d="M414 232 Q494 225 514 264 Q450 278 398 259Z" fill="${accent}"/><path d="M233 197 Q320 154 405 197" fill="none" stroke="#fff" stroke-opacity=".34" stroke-width="10" stroke-linecap="round"/></g>`,
+      headphones:`<g class="pet-accessory-shape pet-headphones"><path d="M154 319 Q149 137 320 130 Q491 139 486 319" fill="none" stroke="#31394e" stroke-width="27" stroke-linecap="round"/><rect x="127" y="286" width="70" height="113" rx="31" fill="url(#${rid}-accent)"/><rect x="443" y="286" width="70" height="113" rx="31" fill="url(#${rid}-accent)"/><path d="M145 316v54M495 316v54" stroke="#fff" stroke-opacity=".34" stroke-width="9" stroke-linecap="round"/></g>`,
+      glasses:`<g class="pet-accessory-shape pet-glasses" fill="none" stroke="#30384d" stroke-width="15"><ellipse cx="237" cy="${l.eyeY}" rx="72" ry="59"/><ellipse cx="403" cy="${l.eyeY}" rx="72" ry="59"/><path d="M309 ${l.eyeY-4} Q320 ${l.eyeY-15} 331 ${l.eyeY-4}M165 ${l.eyeY-4} L116 ${l.eyeY-23}M475 ${l.eyeY-4} L524 ${l.eyeY-23}"/></g>`,
+      scarf:`<g class="pet-accessory-shape pet-scarf"><path d="M169 443 Q320 506 471 443 L458 504 Q321 550 181 504Z" fill="url(#${rid}-accent)"/><path d="M390 493 L462 625 L398 642 L350 515Z" fill="${accent}"/><path d="M207 470 Q321 510 433 470" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="10" stroke-linecap="round"/></g>`,
+      bow:`<g class="pet-accessory-shape pet-bow"><path d="M317 473 Q238 417 194 468 Q224 550 314 509Z" fill="url(#${rid}-accent)"/><path d="M323 473 Q402 417 446 468 Q416 550 326 509Z" fill="url(#${rid}-accent)"/><circle cx="320" cy="491" r="31" fill="#30384d"/><circle cx="311" cy="482" r="8" fill="#fff" opacity=".35"/></g>`,
+      badge:`<g class="pet-accessory-shape pet-badge"><circle cx="421" cy="501" r="42" fill="#f4d46f" stroke="#fff8d8" stroke-width="8"/><path d="M421 476 l9 18 20 3-15 14 4 20-18-10-18 10 4-20-15-14 20-3Z" fill="${accent}"/></g>`,
+      backpack:`<g class="pet-accessory-shape pet-backpack"><path d="M113 375 Q57 402 76 578 Q82 632 150 622 L185 415Z" fill="url(#${rid}-accent)"/><path d="M527 375 Q583 402 564 578 Q558 632 490 622 L455 415Z" fill="url(#${rid}-accent)"/><path d="M115 409 Q164 330 228 354M525 409 Q476 330 412 354" fill="none" stroke="#30384d" stroke-opacity=".65" stroke-width="18" stroke-linecap="round"/></g>`
     };
-    return `<svg class="pet-svg expression-${expression}${petBubble?' is-reacting':''}" viewBox="0 0 200 200" aria-label="Питомец ${esc(state.pet.name)}" role="img"><ellipse class="pet-shadow" cx="100" cy="177" rx="61" ry="13" fill="#7c88aa" opacity=".16"/>${tail}<g class="pet-body">${face}${behind}<path class="pet-core" d="M45 102 C45 65 67 48 100 48 C133 48 155 65 155 102 L151 135 C147 163 129 176 100 176 C71 176 53 163 49 135 Z" fill="${color}"/>${extra}<g class="pet-face"><g class="pet-gaze"><g class="pet-eyes"><ellipse cx="77" cy="98" rx="8" ry="10" fill="#26314c"/><ellipse cx="123" cy="98" rx="8" ry="10" fill="#26314c"/><circle cx="74" cy="94" r="2.5" fill="#fff"/><circle cx="120" cy="94" r="2.5" fill="#fff"/></g></g><path class="pet-nose" d="M96 108 Q100 111 104 108 Q100 115 96 108Z" fill="#26314c" opacity=".78"/>${expressionMarkup}<g class="pet-cheeks"><ellipse cx="61" cy="116" rx="10" ry="5" fill="#fff" opacity=".16"/><ellipse cx="139" cy="116" rx="10" ry="5" fill="#fff" opacity=".16"/></g></g>${accessories[accessory]||''}</g></svg>`;
+    const accessoryMarkup=slot==='none'?'':`<g class="pet-accessory-slot slot-${slot}" data-slot="${slot}" data-accessory="${accessory}">${accessoryShapes[accessory]||''}</g>`;
+    const facePatch=expression==='happy'?'':`<ellipse class="pet-expression-patch" cx="320" cy="${l.mouthY}" rx="66" ry="42" fill="#fbf4ed" opacity="${expression==='sad'?'.86':'.63'}"/>`;
+    const expressionMarkup=expression==='happy'
+      ? `<g class="pet-expression pet-expression-happy"><path class="pet-mouth" d="M285 ${l.mouthY} Q320 ${l.mouthY+37} 355 ${l.mouthY}" fill="none" stroke="#5a342f" stroke-width="9" stroke-linecap="round" opacity=".32"/></g>`
+      : expression==='sad'
+        ? `<g class="pet-expression pet-expression-sad"><path class="pet-mouth" d="M288 ${l.mouthY+19} Q320 ${l.mouthY-13} 352 ${l.mouthY+19}" fill="none" stroke="#503735" stroke-width="10" stroke-linecap="round"/><path class="pet-brows" d="M190 ${l.browY} Q235 ${l.browY+24} 278 ${l.browY+12}M362 ${l.browY+12} Q405 ${l.browY+24} 450 ${l.browY}" fill="none" stroke="#553b36" stroke-width="11" stroke-linecap="round" opacity=".72"/></g>`
+        : `<g class="pet-expression pet-expression-neutral"><path class="pet-mouth" d="M292 ${l.mouthY+8} Q320 ${l.mouthY+14} 348 ${l.mouthY+8}" fill="none" stroke="#503735" stroke-width="9" stroke-linecap="round" opacity=".88"/></g>`;
+    return `<svg class="pet-svg pet-layered pet-type-${petType} expression-${expression}${petBubble?' is-reacting':''}" viewBox="0 0 640 800" style="--pet-accent:${accent}" aria-label="Питомец ${esc(state.pet.name)}" role="img">
+      <defs>
+        <clipPath id="${rid}-body">${l.body}</clipPath>
+        <clipPath id="${rid}-head">${l.head}</clipPath>
+        <clipPath id="${rid}-ear-l">${l.earL}</clipPath>
+        <clipPath id="${rid}-ear-r">${l.earR}</clipPath>
+        <clipPath id="${rid}-tail">${l.tail}</clipPath>
+        <linearGradient id="${rid}-accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset=".68" stop-color="${accent}"/><stop offset="1" stop-color="#30384d" stop-opacity=".78"/></linearGradient>
+      </defs>
+      <ellipse class="pet-shadow" cx="320" cy="735" rx="182" ry="31" fill="#26314c" opacity=".13"/>
+      <g class="pet-composite">
+        ${slot==='back'?accessoryMarkup:''}
+        <g class="pet-tail"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-tail)"/></g>
+        <g class="pet-body">
+          <image class="pet-art-layer pet-core pet-body-art" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-body)"/>
+          <image class="pet-art-layer pet-head-art" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-head)"/>
+          <path class="pet-color-wash" d="M139 345 C177 321 240 323 320 331 C410 323 477 346 509 410 C536 465 530 606 500 700 C468 755 402 777 320 775 C232 780 164 754 135 698 C104 625 105 449 139 345Z" fill="${accent}" opacity=".10"/>
+        </g>
+        <g class="pet-ears">
+          <g class="pet-ear pet-ear-left"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-ear-l)"/></g>
+          <g class="pet-ear pet-ear-right"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-ear-r)"/></g>
+        </g>
+        <g class="pet-face">
+          ${facePatch}
+          <g class="pet-gaze"><circle cx="248" cy="${l.eyeY-25}" r="9" fill="#fff" opacity=".30"/><circle cx="412" cy="${l.eyeY-25}" r="9" fill="#fff" opacity=".30"/></g>
+          <g class="pet-eyes"><path d="M183 ${l.eyeY} Q237 ${l.eyeY+34} 291 ${l.eyeY}" fill="none" stroke="#473331" stroke-width="18" stroke-linecap="round"/><path d="M349 ${l.eyeY} Q403 ${l.eyeY+34} 457 ${l.eyeY}" fill="none" stroke="#473331" stroke-width="18" stroke-linecap="round"/></g>
+          <ellipse class="pet-nose" cx="320" cy="${l.mouthY-47}" rx="13" ry="7" fill="#fff" opacity=".18"/>
+          <g class="pet-cheeks"><ellipse cx="194" cy="${l.cheekY}" rx="38" ry="17" fill="${accent}" opacity=".13"/><ellipse cx="446" cy="${l.cheekY}" rx="38" ry="17" fill="${accent}" opacity=".13"/></g>
+          ${expressionMarkup}
+        </g>
+        ${slot!=='back'?accessoryMarkup:''}
+      </g>
+    </svg>`;
   }
 
   function learningArtwork(kind) {
@@ -1894,7 +1953,7 @@
       app.innerHTML=`<section class="onboarding"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main age-select-main"><div><div class="eyebrow">Шаг 1 из 2</div><h1>Сколько тебе лет?</h1><p>Это меняет слова, ситуации и доступные задания.</p></div><div class="age-grid">${ages.map(a=>`<button class="select-card ${state.ageGroup===a[0]?'active':''}" data-age="${a[0]}"><h3>${a[1]}</h3><p>${a[2]}</p></button>`).join('')}</div></div><button class="btn primary block" data-age-next ${!state.ageGroup?'disabled':''}>Создать питомца</button></section>`;
       app.querySelectorAll('[data-age]').forEach(b=>b.onclick=()=>{state.ageGroup=b.dataset.age;save();render();});app.querySelector('[data-age-next]').onclick=()=>{state.onboardingStep=slides.length+1;save();render();};return;
     }
-    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2</div><h1>${state.ageGroup==='15-17'?'Выбери компаньона':'Создай друга'}</h1><p>${state.ageGroup==='15-17'?'Он будет частью мира и не станет оценивать твои решения.':'Выбери питомца, цвет и аксессуар.'}</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Основной цвет</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>Получить 1000 монет</button></div></section>`;
+    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2</div><h1>${state.ageGroup==='15-17'?'Выбери компаньона':'Создай друга'}</h1><p>${state.ageGroup==='15-17'?'Он будет частью мира и не станет оценивать твои решения.':'Выбери питомца, цвет акцента и аксессуар.'}</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Цвет акцента</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>Получить 1000 монет</button></div></section>`;
     const rememberName=()=>{const input=app.querySelector('#petName');if(input)state.pet.name=(input.value||'Финни').slice(0,14);};
     app.querySelectorAll('[data-pet]').forEach(b=>b.onclick=()=>{rememberName();state.pet.type=b.dataset.pet;save();render();});app.querySelectorAll('[data-color]').forEach(b=>b.onclick=e=>{e.preventDefault();rememberName();state.pet.color=b.dataset.color;save();render();});
     app.querySelector('#accessory').onchange=e=>{rememberName();state.pet.accessory=e.target.value;track('accessory_selected',{accessory:e.target.value,petType:state.pet.type});save();render();};app.querySelector('#petName').oninput=e=>{state.pet.name=e.target.value;save();};
@@ -2123,7 +2182,7 @@
       app.querySelectorAll('[data-difficulty]').forEach(b=>b.onclick=()=>{setDifficulty(b.dataset.difficulty,{initial:true});render();});
       app.querySelector('[data-difficulty-next]').onclick=()=>{state.onboardingStep=slides.length+1;save();render();};return;
     }
-    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2</div><h1>Создай друга</h1><p>Выбери питомца, цвет и аксессуар.</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Основной цвет</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>Получить 1000 монет</button></div></section>`;
+    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2</div><h1>Создай друга</h1><p>Выбери питомца, цвет акцента и аксессуар.</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Цвет акцента</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>Получить 1000 монет</button></div></section>`;
     const rememberName=()=>{const input=app.querySelector('#petName');if(input)state.pet.name=(input.value||'Финни').slice(0,14);};
     app.querySelectorAll('[data-pet]').forEach(b=>b.onclick=()=>{rememberName();state.pet.type=b.dataset.pet;save();render();});app.querySelectorAll('[data-color]').forEach(b=>b.onclick=e=>{e.preventDefault();rememberName();state.pet.color=b.dataset.color;save();render();});
     app.querySelector('#accessory').onchange=e=>{rememberName();state.pet.accessory=e.target.value;track('accessory_selected',{accessory:e.target.value,petType:state.pet.type});save();render();};app.querySelector('#petName').oninput=e=>{state.pet.name=e.target.value;save();};
