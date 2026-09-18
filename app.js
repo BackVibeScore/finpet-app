@@ -12,6 +12,7 @@
   let editingPlan = false;
   let introReplay = false;
   let introReplayStep = 0;
+  let petRenderSeq = 0;
   let adultUnlocked = false;
   let adultHoldTimer = null;
   let adultHoldStartedAt = 0;
@@ -1813,7 +1814,6 @@
   }
 
   // V11 layered character renderer: detailed base art + independently animated regions + accessory anchors.
-  let petRenderSeq=0;
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
     const petType=['cat','dog','mumo'].includes(type)?type:'cat';
     const accent=/^#[0-9a-f]{6}$/i.test(String(color||''))?color:(C.petColors?.[0]||'#F0A56B');
