@@ -449,7 +449,7 @@
   }
 
 
-  // ===== V3 CUSTDEV GAME-DEPTH OVERRIDES =====function completedWeeks(s = state) { return (s.weekHistory || []).length; }
+  function completedWeeks(s = state) { return (s.weekHistory || []).length; }
   function desiredWorldStage(s = state) {
     const w = completedWeeks(s);
     if (w >= 8 || (s.completedGoals || []).length >= 3) return 5;
