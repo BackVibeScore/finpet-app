@@ -1311,7 +1311,7 @@
     if (owns('interior_sofa') && seed % 5 === 0) return {cls:'sofa', text:'устроился на диване'};
     if (owns('game_ball') && seed % 4 === 0) return {cls:'play', text:'играет с мячом'};
     if (state.currentWorldArea !== 'home') return {cls:'wander', text:state.currentWorldArea === 'park' ? 'осматривается в парке' : 'смотрит на город'};
-    return seed % 2 ? {cls:'look', text:'разглядывает комнату'} : {cls:'wander', text:'ходит по комнате'};
+    return seed % 2 ? {cls:'look', text:'разглядывает комнату'} : {cls:'wander', text:'радуется тебе'};
   }
   function petThought() {
     const list = C.petThoughts?.[state.ageGroup] || [];
@@ -1813,39 +1813,16 @@
     return migrated;
   }
 
-  // V11 layered character renderer: detailed base art + independently animated regions + accessory anchors.
+  // V11 coherent character renderer: one silhouette, one image, attached accessories.
+  // These assets contain baked faces/backgrounds; never layer duplicate crops or fake eyelids.
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
     const petType=['cat','dog','mumo'].includes(type)?type:'cat';
     const accent=/^#[0-9a-f]{6}$/i.test(String(color||''))?color:(C.petColors?.[0]||'#F0A56B');
     const petMeta=C.pets.find(p=>p.id===petType)||C.pets[0];
-    const art=`${petMeta?.art||`assets/pets/${petType}.webp`}?v=20260918d`;
+    const art=`${petMeta?.art||`assets/pets/${petType}.webp`}?v=20260918f`;
     const rid=`petv11-${++petRenderSeq}`;
-    const layouts={
-      cat:{
-        head:'<ellipse cx="321" cy="277" rx="228" ry="194"/>',
-        body:'<path d="M139 345 C178 319 232 323 320 329 C412 321 482 340 512 402 C542 463 537 610 501 702 C475 761 405 784 320 780 C227 785 159 756 131 697 C99 627 102 441 139 345Z"/>',
-        earL:'<path d="M62 85 C83 28 161 20 238 143 L246 255 L107 260 C70 210 48 145 62 85Z"/>',
-        earR:'<path d="M397 143 C469 23 553 28 580 87 C594 144 571 213 535 260 L397 256Z"/>',
-        tail:'<path d="M16 366 C53 322 130 332 175 380 C220 429 211 493 176 535 C145 571 142 621 181 654 C132 701 63 683 33 630 C2 575 26 526 54 490 C82 454 69 417 16 366Z"/>',
-        eyeY:287,mouthY:374,browY:229,cheekY:360
-      },
-      dog:{
-        head:'<ellipse cx="320" cy="287" rx="230" ry="190"/>',
-        body:'<path d="M143 365 C183 334 238 333 321 339 C408 332 472 349 506 408 C542 470 531 621 498 704 C469 760 404 783 320 779 C230 783 163 756 135 700 C101 630 105 455 143 365Z"/>',
-        earL:'<path d="M43 142 C77 73 154 70 236 170 C242 234 217 316 145 359 C78 347 42 302 37 239 C34 202 34 169 43 142Z"/>',
-        earR:'<path d="M404 168 C484 75 566 78 599 144 C609 181 608 232 594 269 C574 323 526 349 474 351 C424 314 399 236 404 168Z"/>',
-        tail:'<path d="M14 404 C57 365 124 379 177 423 C219 458 233 506 209 547 C184 591 129 599 94 575 C126 543 126 506 99 480 C73 455 41 441 14 404Z"/>',
-        eyeY:294,mouthY:378,browY:236,cheekY:363
-      },
-      mumo:{
-        head:'<ellipse cx="321" cy="285" rx="235" ry="198"/><circle cx="255" cy="103" r="67"/><circle cx="389" cy="91" r="65"/>',
-        body:'<path d="M139 364 C181 329 239 332 320 337 C407 330 475 351 509 414 C541 473 534 620 500 705 C473 762 404 784 320 780 C231 784 160 758 133 700 C99 629 103 455 139 364Z"/>',
-        earL:'<path d="M24 174 C53 112 131 100 234 182 C244 246 210 322 131 350 C69 343 31 309 16 257 C7 225 8 197 24 174Z"/>',
-        earR:'<path d="M407 180 C504 107 580 115 616 178 C632 211 632 245 618 277 C595 329 548 352 490 351 C426 316 397 246 407 180Z"/>',
-        tail:'<path d="M12 454 C45 410 110 412 180 457 C221 485 229 536 202 576 C170 623 111 632 65 603 C89 569 85 535 59 510 C39 490 23 475 12 454Z"/>',
-        eyeY:290,mouthY:378,browY:230,cheekY:362
-      }
-    };
+    // Contours are in original 640x800 asset coordinates, including the spaces between legs.
+    const layouts={"cat":{"outline":"M130 108 Q175 101 256 146 Q287 109 339 123 Q363 54 429 31 Q461 71 468 169 Q474 202 509 246 Q501 260 506 288 Q509 333 442 373 Q426 385 430 404 Q478 434 483 486 Q492 519 472 570 L475 653 Q477 678 490 696 Q507 724 464 726 L418 725 Q392 723 390 692 L378 614 L354 638 Q371 659 365 680 L348 688 Q375 723 345 739 L287 741 Q247 739 258 707 L253 677 L242 594 Q228 617 214 627 L210 652 Q229 683 208 689 L161 690 Q133 690 139 663 Q144 614 158 578 Q156 551 161 531 Q104 519 107 451 Q112 420 95 420 Q57 449 47 418 Q27 382 68 348 Q102 319 133 335 Q193 350 191 406 Q191 460 176 490 Q204 433 279 405 Q218 397 182 366 L162 337 Q177 309 178 278 Q127 234 126 164 Q123 130 130 108Z","eyeY":287,"face":"translate(25 -27) rotate(-15 320 287) translate(320 287) scale(.8 .9) translate(-320 -287)","head":"translate(20 -93) rotate(-10 320 220)","neck":"translate(14 -88) scale(.92 1)","ground":740,"duration":4.8},"dog":{"outline":"M343 76 Q359 41 397 46 Q430 51 449 77 Q513 78 539 124 Q552 159 540 206 Q530 239 506 240 Q497 239 488 225 Q484 258 475 280 Q464 328 425 349 Q413 370 431 399 Q487 432 487 497 L473 586 L482 655 Q486 676 505 687 Q532 715 487 721 L440 717 Q410 715 404 687 L395 609 Q378 632 365 643 Q402 675 376 691 L356 694 Q380 722 345 731 L281 731 Q240 730 243 707 L252 684 L250 607 Q231 623 221 631 L212 659 Q225 682 202 685 L153 683 Q120 683 124 655 Q128 602 144 568 Q145 512 174 467 Q124 473 91 435 Q69 409 72 362 Q77 325 95 330 Q127 327 144 359 Q164 391 203 391 L253 365 Q219 354 207 337 Q174 357 157 343 Q111 317 102 285 Q91 262 108 224 Q133 184 155 151 Q162 120 184 111 Q216 99 252 126 Q291 87 343 76Z","eyeY":287,"face":"translate(22 -69) rotate(-17 320 287) translate(320 287) scale(.82 .85) translate(-320 -287)","head":"translate(32 -115) rotate(-12 320 220)","neck":"translate(13 -121) scale(.88 1)","ground":731,"duration":3.8},"mumo":{"outline":"M208 198 Q214 178 226 162 Q208 154 187 148 Q171 122 195 105 Q222 88 236 102 Q246 118 250 143 L263 135 Q270 92 313 68 L302 94 L334 65 L319 92 Q352 86 371 108 Q374 87 371 66 Q378 39 402 47 Q433 51 424 80 Q419 94 409 102 L408 121 Q442 110 474 116 Q539 102 589 142 Q612 175 613 213 Q614 252 584 256 Q549 262 498 235 Q513 262 519 280 Q507 340 451 367 Q438 377 448 397 Q473 423 479 463 Q495 510 476 542 L472 639 Q469 654 490 670 Q508 704 469 710 L418 709 Q390 706 387 674 L378 616 L355 638 Q378 662 369 678 Q380 712 344 723 L287 723 Q251 721 253 696 L255 628 L249 588 L214 625 Q223 651 215 670 Q211 682 179 679 L145 679 Q118 678 123 652 Q126 609 146 566 Q147 535 164 505 Q115 521 77 493 Q50 480 51 451 Q52 434 66 433 Q48 414 50 390 Q73 378 96 392 Q93 379 113 380 Q139 382 151 396 L146 387 Q178 404 185 437 L181 471 Q218 417 296 393 Q229 384 210 353 L196 326 Q153 361 112 366 Q81 365 73 344 Q64 324 75 293 Q93 244 142 218 Q172 205 208 198Z","eyeY":287,"face":"translate(38 -38) rotate(-15 320 287) translate(320 287) scale(.85 .9) translate(-320 -287)","head":"translate(36 -96) rotate(-9 320 220)","neck":"translate(18 -97) scale(.91 1)","ground":724,"duration":4.4}};
     const l=layouts[petType];
     const moodValues=['satiety','mood','energy','care'].map(k=>Number(state.pet?.[k]??0));
     const moodAverage=moodValues.reduce((sum,n)=>sum+n,0)/Math.max(1,moodValues.length);
@@ -1862,45 +1839,20 @@
       badge:`<g class="pet-accessory-shape pet-badge"><circle cx="421" cy="501" r="42" fill="#f4d46f" stroke="#fff8d8" stroke-width="8"/><path d="M421 476 l9 18 20 3-15 14 4 20-18-10-18 10 4-20-15-14 20-3Z" fill="${accent}"/></g>`,
       backpack:`<g class="pet-accessory-shape pet-backpack"><path d="M113 375 Q57 402 76 578 Q82 632 150 622 L185 415Z" fill="url(#${rid}-accent)"/><path d="M527 375 Q583 402 564 578 Q558 632 490 622 L455 415Z" fill="url(#${rid}-accent)"/><path d="M115 409 Q164 330 228 354M525 409 Q476 330 412 354" fill="none" stroke="#30384d" stroke-opacity=".65" stroke-width="18" stroke-linecap="round"/></g>`
     };
-    const accessoryMarkup=slot==='none'?'':`<g class="pet-accessory-slot slot-${slot}" data-slot="${slot}" data-accessory="${accessory}">${accessoryShapes[accessory]||''}</g>`;
-    const facePatch=expression==='happy'?'':`<ellipse class="pet-expression-patch" cx="320" cy="${l.mouthY}" rx="66" ry="42" fill="#fbf4ed" opacity="${expression==='sad'?'.86':'.63'}"/>`;
-    const expressionMarkup=expression==='happy'
-      ? `<g class="pet-expression pet-expression-happy"><path class="pet-mouth" d="M285 ${l.mouthY} Q320 ${l.mouthY+37} 355 ${l.mouthY}" fill="none" stroke="#5a342f" stroke-width="9" stroke-linecap="round" opacity=".32"/></g>`
-      : expression==='sad'
-        ? `<g class="pet-expression pet-expression-sad"><path class="pet-mouth" d="M288 ${l.mouthY+19} Q320 ${l.mouthY-13} 352 ${l.mouthY+19}" fill="none" stroke="#503735" stroke-width="10" stroke-linecap="round"/><path class="pet-brows" d="M190 ${l.browY} Q235 ${l.browY+24} 278 ${l.browY+12}M362 ${l.browY+12} Q405 ${l.browY+24} 450 ${l.browY}" fill="none" stroke="#553b36" stroke-width="11" stroke-linecap="round" opacity=".72"/></g>`
-        : `<g class="pet-expression pet-expression-neutral"><path class="pet-mouth" d="M292 ${l.mouthY+8} Q320 ${l.mouthY+14} 348 ${l.mouthY+8}" fill="none" stroke="#503735" stroke-width="9" stroke-linecap="round" opacity=".88"/></g>`;
-    return `<svg class="pet-svg pet-layered pet-type-${petType} expression-${expression}${petBubble?' is-reacting':''}" viewBox="0 0 640 800" style="--pet-accent:${accent}" aria-label="Питомец ${esc(state.pet.name)}" role="img">
+
+    const anchor=slot==='face'?l.face:slot==='head'?l.head:slot==='neck'?l.neck:'';
+    const accessoryMarkup=slot==='none'?'':`<g class="pet-accessory-slot slot-${slot}" data-slot="${slot}" data-accessory="${accessory}"><g transform="${anchor}">${accessoryShapes[accessory]||''}</g></g>`;
+    return `<svg class="pet-svg pet-layered pet-solid pet-type-${petType} expression-${expression}${petBubble?' is-reacting':''}" viewBox="0 0 640 800" style="--pet-accent:${accent};--pet-ground:${l.ground}px;--pet-breath-duration:${expression==='sad'?l.duration+1.4:l.duration}s" aria-label="Питомец ${esc(state.pet.name)}" role="img">
       <defs>
-        <clipPath id="${rid}-body">${l.body}</clipPath>
-        <clipPath id="${rid}-head">${l.head}</clipPath>
-        <clipPath id="${rid}-ear-l">${l.earL}</clipPath>
-        <clipPath id="${rid}-ear-r">${l.earR}</clipPath>
-        <clipPath id="${rid}-tail">${l.tail}</clipPath>
+        <clipPath id="${rid}-silhouette"><path d="${l.outline}"/></clipPath>
         <linearGradient id="${rid}-accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset=".68" stop-color="${accent}"/><stop offset="1" stop-color="#30384d" stop-opacity=".78"/></linearGradient>
       </defs>
-      <ellipse class="pet-shadow" cx="320" cy="735" rx="182" ry="31" fill="#26314c" opacity=".13"/>
-      <g class="pet-composite">
+      <ellipse class="pet-ground-shadow" cx="320" cy="${l.ground-6}" rx="184" ry="20" fill="#26314c" opacity=".15"/>
+      <g class="pet-response"><g class="pet-composite">
         ${slot==='back'?accessoryMarkup:''}
-        <g class="pet-tail"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-tail)"/></g>
-        <g class="pet-body">
-          <image class="pet-art-layer pet-core pet-body-art" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-body)"/>
-          <image class="pet-art-layer pet-head-art" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-head)"/>
-          <path class="pet-color-wash" d="M139 345 C177 321 240 323 320 331 C410 323 477 346 509 410 C536 465 530 606 500 700 C468 755 402 777 320 775 C232 780 164 754 135 698 C104 625 105 449 139 345Z" fill="${accent}" opacity=".10"/>
-        </g>
-        <g class="pet-ears">
-          <g class="pet-ear pet-ear-left"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-ear-l)"/></g>
-          <g class="pet-ear pet-ear-right"><image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-ear-r)"/></g>
-        </g>
-        <g class="pet-face">
-          ${facePatch}
-          <g class="pet-gaze"><circle cx="248" cy="${l.eyeY-25}" r="9" fill="#fff" opacity=".30"/><circle cx="412" cy="${l.eyeY-25}" r="9" fill="#fff" opacity=".30"/></g>
-          <g class="pet-eyes"><path d="M183 ${l.eyeY} Q237 ${l.eyeY+34} 291 ${l.eyeY}" fill="none" stroke="#473331" stroke-width="18" stroke-linecap="round"/><path d="M349 ${l.eyeY} Q403 ${l.eyeY+34} 457 ${l.eyeY}" fill="none" stroke="#473331" stroke-width="18" stroke-linecap="round"/></g>
-          <ellipse class="pet-nose" cx="320" cy="${l.mouthY-47}" rx="13" ry="7" fill="#fff" opacity=".18"/>
-          <g class="pet-cheeks"><ellipse cx="194" cy="${l.cheekY}" rx="38" ry="17" fill="${accent}" opacity=".13"/><ellipse cx="446" cy="${l.cheekY}" rx="38" ry="17" fill="${accent}" opacity=".13"/></g>
-          ${expressionMarkup}
-        </g>
+        <image class="pet-art-layer" href="${art}" x="0" y="0" width="640" height="800" preserveAspectRatio="xMidYMid meet" clip-path="url(#${rid}-silhouette)"/>
         ${slot!=='back'?accessoryMarkup:''}
-      </g>
+      </g></g>
     </svg>`;
   }
 
