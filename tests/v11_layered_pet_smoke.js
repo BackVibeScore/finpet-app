@@ -20,9 +20,13 @@ for(const id of ['none','cap','scarf','badge','glasses','headphones','bow','back
 req(app.includes("const expression=(moodAverage>=70&&moodWeakest>=45)?'happy'"),'expression thresholds changed');
 req(css.includes('V11 LAYERED PREMIUM PETS'),'V11 CSS missing');
 req(css.includes('@keyframes petBlinkLayered'),'layered blink missing');
+req(css.includes('@keyframes petWholeIdleV11'),'whole-character idle motion missing');
+req(css.includes('@keyframes petWholeReactV11'),'whole-character reaction missing');
+req(css.includes('all cropped art, face detail and accessories remain locked')||css.includes('Critical coherence override'),'coherence override missing');
+for(const selector of ['.pet-tail','.pet-ear-left','.pet-ear-right','.pet-face','.pet-accessory-slot']) req(css.includes(selector),'coherence selector missing: '+selector);
 req(css.includes('html[data-motion="off"] .pet-svg.pet-layered'),'motion-off coverage missing');
 req(css.includes('html[data-motion="on"] .pet-svg.pet-layered .pet-eyes'),'motion-on override missing');
-req(sw.includes('finpet-v12-onboarding-render-fix-20260918c-pets-v11-20260918d'),'pet cache version missing');
+req(sw.includes('finpet-v12-onboarding-render-fix-20260918c-pets-v11-20260918e'),'pet cache version missing');
 req(sw.includes('petArt=/'),'pet asset network-first handling missing');
-req(index.includes('app.js?v=20260918d')&&index.includes('styles.css?v=20260918d'),'V11 cache bust missing');
+req(index.includes('app.js?v=20260918d')&&index.includes('styles.css?v=20260918e'),'V11 animation-fix cache bust missing');
 console.log('v11_layered_pet_smoke: OK');
