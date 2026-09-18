@@ -1,36 +1,28 @@
 /* High-resolution splash and onboarding layer for КопиХвост */
 .welcome-gate,.welcome-gate *,.intro-onboarding,.intro-onboarding *,.splash,.splash *{box-sizing:border-box}
-
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
-/* A blurred cover layer fills unusual aspect ratios; the foreground art is never cropped. */
-.premium-art-screen{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#5f3822!important;color:#fff!important}
-.premium-art-backdrop{position:absolute;inset:-34px;z-index:0;overflow:hidden;background:#5f3822;pointer-events:none}
+.premium-art-screen{position:fixed!important;inset:0!important;width:100%!important;height:100vh!important;min-height:100vh!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#5f3822!important;color:#fff!important}
+@supports(height:100dvh){.premium-art-screen{height:100dvh!important;min-height:100dvh!important}}
+.premium-art-backdrop{position:absolute;inset:-32px;z-index:0;overflow:hidden;background:#5f3822;pointer-events:none}
 .premium-art-backdrop:after{content:"";position:absolute;inset:0;background:rgba(54,27,13,.16)}
-.premium-art-backdrop img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:blur(24px) saturate(.9) brightness(.68);transform:scale(1.1)}
-.premium-art-safe{position:absolute;z-index:1;inset:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:grid;place-items:center;overflow:hidden;pointer-events:none}
-.premium-art-frame{position:relative;width:min(100%,56.25dvh,560px);max-height:100%;aspect-ratio:941/1672;overflow:hidden;background:#6b3d25;box-shadow:0 0 52px rgba(38,16,6,.28);pointer-events:auto}
-.premium-art-image{display:block;width:100%;height:100%;object-fit:contain;object-position:center;user-select:none;-webkit-user-drag:none}
+.premium-art-backdrop img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:blur(22px) saturate(.9) brightness(.7);transform:scale(1.1)}
+.premium-art-safe{position:absolute;z-index:1;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:none}
+.premium-art-frame{position:relative;flex:0 0 auto;overflow:hidden;background:#6b3d25;box-shadow:0 0 52px rgba(38,16,6,.28);pointer-events:auto}
+.premium-art-image{display:block;width:100%;height:100%;object-fit:fill;object-position:center;user-select:none;-webkit-user-drag:none}
 
-/* Loading screen uses the same artwork so there is no visual jump before the tap screen. */
 .splash.premium-splash{z-index:240!important;display:block!important;text-align:initial!important;animation:premiumFadeIn .28s ease-out both}
-.splash.premium-splash>div,.splash.premium-splash .splash-mark,.splash.premium-splash h1,.splash.premium-splash p{display:none!important}
-
-/* Start invitation: only the approved art. The baked “Нажмите для продолжения” stays visible. */
 .welcome-gate.premium-welcome{z-index:250!important;display:block!important;animation:premiumFadeIn .32s ease-out both}
 .welcome-gate.is-leaving{animation:premiumFadeOut .28s ease forwards}
 .welcome-tap-surface{position:absolute;z-index:5;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;background:transparent;color:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.welcome-tap-surface:active~.premium-art-safe,.welcome-gate:has(.welcome-tap-surface:active) .premium-art-frame{filter:brightness(.96)}
 .welcome-tap-surface:focus-visible{outline:3px solid rgba(255,177,65,.95);outline-offset:-7px}
 
-/* Four onboarding screens: the generated card, copy and buttons are part of the art itself. */
 .intro-onboarding.premium-intro{z-index:230!important;display:block!important;max-width:none!important;background:#5f3822!important}
 .intro-onboarding.premium-intro>.onboard-header{display:none!important}
 .intro-onboarding.premium-intro>.onboard-main{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;display:block!important;overflow:hidden!important}
 .intro-onboarding.premium-intro>.btn.block{display:none!important}
 .premium-intro-frame{animation:premiumArtIn .3s ease-out both}
 
-/* Real controls align to the buttons painted into the 9:16 image. */
 .premium-hotspot,.premium-next-slot{position:absolute;z-index:5;-webkit-tap-highlight-color:transparent}
 .premium-hotspot{border:0;background:transparent;color:transparent;cursor:pointer}
 .premium-hotspot-skip{left:3.5%;bottom:2.3%;width:32%;height:11.5%;border-radius:999px}
@@ -38,20 +30,7 @@
 .premium-next-slot .btn.primary,.premium-next-slot [data-onboard-next]{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:999px!important;background:transparent!important;box-shadow:none!important;color:transparent!important;font-size:0!important;text-shadow:none!important;opacity:1!important;cursor:pointer!important;transform:none!important;-webkit-tap-highlight-color:transparent}
 .premium-hotspot:active,.premium-next-slot [data-onboard-next]:active{background:rgba(255,133,15,.1)!important}
 .premium-hotspot:focus-visible,.premium-next-slot [data-onboard-next]:focus-visible{outline:3px solid rgba(255,255,255,.95)!important;outline-offset:-5px!important;background:rgba(255,139,20,.08)!important}
-.premium-intro-frame:has(.premium-hotspot:active),.premium-intro-frame:has([data-onboard-next]:active){filter:brightness(.965)}
-
-/* Very narrow screens keep a small breathing edge without cropping the artwork. */
-@media (max-width:360px){
-  .premium-art-frame{width:min(100%,55dvh)}
-}
-
-/* Landscape/tablet/desktop still presents a phone-like centered composition. */
-@media (orientation:landscape){
-  .premium-art-frame{width:min(56.25dvh,520px)}
-}
-@media (min-width:700px){
-  .premium-art-frame{box-shadow:0 0 80px rgba(34,14,5,.38)}
-}
+@media (min-width:700px){.premium-art-frame{box-shadow:0 0 80px rgba(34,14,5,.38)}}
 
 @keyframes premiumFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes premiumFadeOut{to{opacity:0}}
