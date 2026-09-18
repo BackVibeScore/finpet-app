@@ -13,8 +13,6 @@
   let introReplay = false;
   let introReplayStep = 0;
   let adultUnlocked = false;
-  let adultHoldTimer = null;
-  let adultHoldStartedAt = 0;
   let helpReturnRoute = 'profile';
   setTimeout(() => { showingSplash = false; render(); }, 650);
 
@@ -1024,7 +1022,6 @@
     document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const k=b.dataset.toggle;state.settings[k]=!state.settings[k];if(k==='motion'){track(state.settings.motion?'motion_enabled':'motion_disabled',{difficultyMode:state.difficultyMode});syncMotionPreference();}save();render();});document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{modal={type:'resetConfirm'};render();});document.querySelectorAll('[data-confirm-reset]').forEach(b=>b.onclick=resetProfile);
     document.querySelectorAll('[data-world-area]').forEach(b=>b.onclick=()=>{if(state.worldProgress.areas.includes(b.dataset.worldArea)){state.currentWorldArea=b.dataset.worldArea;save();render();}});document.querySelectorAll('[data-work-start]').forEach(b=>b.onclick=()=>startWorkActivity(b.dataset.workStart));document.querySelectorAll('[data-work-bin]').forEach(b=>b.onclick=()=>resolveWorkBin(b.dataset.workBin));document.querySelectorAll('[data-work-cancel]').forEach(b=>b.onclick=cancelWorkActivity);
     document.querySelectorAll('[data-jar-delta]').forEach(b=>b.onclick=()=>{const id=b.dataset.jarTarget,input=document.getElementById(id);if(!input)return;const delta=Number(b.dataset.jarDelta||0),budget=Number(document.getElementById('planTotal')?.dataset.budget||planningBudget());const current=Math.max(0,Number(input.value||0));input.value=Math.max(0,Math.min(budget,current+delta));renderJarValues();updatePlanTotal();});const planInputs=['planNecessary','planWants','planSavings','planReserve'].map(id=>document.getElementById(id)).filter(Boolean);planInputs.forEach(x=>x.addEventListener('input',updatePlanTotal));const slider=document.getElementById('goalSlider');if(slider)slider.oninput=()=>{document.getElementById('sliderValue').textContent=slider.value;document.getElementById('sliderWeeks').textContent=`${Math.ceil(1200/Number(slider.value))} недель`;};
-    document.querySelectorAll('[data-adult-hold]').forEach(b=>{const stop=()=>{clearTimeout(adultHoldTimer);adultHoldTimer=null;adultHoldStartedAt=0;b.classList.remove('holding');};b.onpointerdown=e=>{e.preventDefault();stop();adultHoldStartedAt=Date.now();b.classList.add('holding');adultHoldTimer=setTimeout(()=>completeAdultHold(Date.now()-adultHoldStartedAt),3000);};b.onpointerup=stop;b.onpointerleave=stop;b.onpointercancel=stop;b.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!adultHoldStartedAt){e.preventDefault();adultHoldStartedAt=Date.now();b.classList.add('holding');adultHoldTimer=setTimeout(()=>completeAdultHold(Date.now()-adultHoldStartedAt),3000);}};b.onkeyup=stop;});
   }
   let parentPuzzleState = null;
   let parentGateMessage = '';
