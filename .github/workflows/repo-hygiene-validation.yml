@@ -1,0 +1,37 @@
+name: Repo hygiene validation
+on:
+  push:
+    branches:
+      - chore/remove-unused-assets
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check app.js
+          node --check content.js
+          node --check welcome.js
+          node --check sw.js
+      - name: Regression suite
+        run: |
+          node tests/runtime_smoke.js
+          node tests/gameplay_smoke.js
+          node tests/side_job_smoke.js
+          node tests/v5_requirements_smoke.js
+          node tests/v6_requirements_smoke.js
+          node tests/v7_motion_expression_smoke.js
+          node tests/v8_motion_toggle_runtime_smoke.js
+          node tests/v9_pet_ux_smoke.js
+          node tests/v10_premium_onboarding_smoke.js
+          node tests/brand_smoke.js
+          node tests/validate_content.js
+          node tests/validate_analytics.js
