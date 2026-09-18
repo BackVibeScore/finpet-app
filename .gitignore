@@ -6,3 +6,12 @@ assets/*.png
 tests/*_output.txt
 tests/strategy_*.txt
 tests/strategy_*.json
+node_modules/
+android/local.properties
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+.gradle/
+android/.gradle/
+android/app/build/

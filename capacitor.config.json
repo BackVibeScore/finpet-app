@@ -1,0 +1,12 @@
+{
+  "appId": "ru.kopihvost.app",
+  "appName": "КопиХвост",
+  "webDir": "dist/android",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

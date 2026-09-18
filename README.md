@@ -97,4 +97,4 @@ node scripts/build-standalone.js
 
 Результат создаётся локально в `dist/finpet_demo_v5.html`. Папка `dist/` считается производной сборкой и не хранится в Git. Standalone HTML содержит CSS, JavaScript и WebP-изображения внутри файла и не требует сервера.
 
-APK/AAB собирается отдельным Android-этапом из тех же исходников.
+Android-контур реализован через Capacitor из тех же исходников. Debug APK и unsigned release APK собираются GitHub Actions; инструкция — `BUILD_ANDROID.md`. Игровые файлы упаковываются внутрь APK, Яндекс.Метрика в Android build отсутствует.

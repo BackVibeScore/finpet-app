@@ -1,0 +1,102 @@
+name: Android APK validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feat/android-capacitor-offline
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: npm install
+      - name: Build Android web bundle
+        run: npm run build:android
+      - name: Generate Android project
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
+          node scripts/configure-android-native.js
+      - name: JavaScript regression suite
+        run: |
+          node --check app.js
+          node --check content.js
+          node --check welcome.js
+          node --check storage.js
+          node tests/runtime_smoke.js
+          node tests/gameplay_smoke.js
+          node tests/side_job_smoke.js
+          node tests/v5_requirements_smoke.js
+          node tests/v6_requirements_smoke.js
+          node tests/v7_motion_expression_smoke.js
+          node tests/v8_motion_toggle_runtime_smoke.js
+          node tests/v9_pet_ux_smoke.js
+          node tests/v10_premium_onboarding_smoke.js
+          node tests/brand_smoke.js
+          node tests/validate_content.js
+          node tests/validate_analytics.js
+          node tests/repo_hygiene_smoke.js
+          node tests/storage_adapter_smoke.js
+          node tests/android_build_smoke.js
+      - name: Verify Android manifest and package
+        run: |
+          grep -q 'applicationId "ru.kopihvost.app"' android/app/build.gradle
+          grep -q 'minSdkVersion = 26' android/variables.gradle
+          grep -q 'android:screenOrientation="portrait"' android/app/src/main/AndroidManifest.xml
+          ! grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
+          ! grep -R -n -E 'mc\.yandex\.ru|metrika/tag\.js|ym\(' android/app/src/main/assets/public
+      - name: Build Android APKs
+        working-directory: android
+        run: ./gradlew assembleDebug assembleRelease
+      - name: Verify packaged manifest and Android bundle
+        run: |
+          MERGED_MANIFEST=$(find android/app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml | head -n 1)
+          test -n "$MERGED_MANIFEST"
+          ! grep -q 'android.permission.INTERNET' "$MERGED_MANIFEST"
+          unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/public/index.html > /tmp/kopihvost-index.html
+          ! grep -E -q 'mc\.yandex\.ru|metrika/tag\.js|ym\(' /tmp/kopihvost-index.html
+      - name: Prepare APK artifacts
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk kopihvost-debug.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk kopihvost-release-unsigned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kopihvost-debug-apk
+          path: kopihvost-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kopihvost-release-unsigned-apk
+          path: kopihvost-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Commit generated Android project and lockfile
+        if: github.ref_name == 'feat/android-capacitor-offline'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json android
+          if git diff --cached --quiet; then
+            echo 'Generated project is already committed'
+          else
+            git commit -m 'Android: generate Capacitor project [skip android-build]'
+            git push origin HEAD:feat/android-capacitor-offline
+          fi

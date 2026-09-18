@@ -3,6 +3,7 @@
   const STORAGE_KEY = 'finpet_mvp_state_v1'; // keep key for backward-compatible migration
   const app = document.getElementById('app');
   let state = migrateState(loadRawState());
+  window.FINPET_STORAGE?.saveState?.(STORAGE_KEY, state);
   let route = !state.onboardingDone ? 'onboarding' : (state.weekSummary ? 'weekSummary' : (state.weekNeedsPlanning ? 'weekStart' : 'home'));
   let modal = null;
   let taskResult = null;
@@ -17,11 +18,16 @@
   setTimeout(() => { showingSplash = false; render(); }, 650);
 
   function loadRawState() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); }
-    catch (e) { return null; }
+    try {
+      if (window.FINPET_STORAGE?.loadSync) return window.FINPET_STORAGE.loadSync(STORAGE_KEY);
+      return JSON.parse(localStorage.getItem(STORAGE_KEY));
+    } catch (e) { return null; }
   }
 
-  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function save() {
+    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(STORAGE_KEY, state);
+    else localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
   function clamp(n, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(n) || 0)); }
   function esc(s = '') { return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
   function fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(Number(n) || 0)); }
@@ -887,7 +893,8 @@
     if(migrated.workState.week!==migrated.wallet.week)migrated.workState={week:migrated.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};
     if(!migrated.worldProgress.areas?.includes(migrated.currentWorldArea))migrated.currentWorldArea='home';
     if(!migrated.currentEventId&&migrated.difficultyMode){const pool=eventPoolFor(migrated);migrated.currentEventId=pool.length?pool[(migrated.wallet.week*17+migrated.wallet.day*7)%pool.length].id:(C.events[0]?.id||null);}
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));
+    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(STORAGE_KEY,migrated);
+    else localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));
     return migrated;
   }
 
@@ -978,7 +985,7 @@
   function withdrawalPreview(amount){const n=Math.min(Math.max(0,Number(amount)||0),state.wallet.savings),after=state.wallet.savings-n;return {amount:n,before:state.wallet.savings,after,remaining:activeGoal()?Math.max(0,goalTarget()-after):null,beforeWeeks:weeksForSavedAmount(state.wallet.savings),afterWeeks:weeksForSavedAmount(after)};}
   function openWithdrawalPreview(amount){const p=withdrawalPreview(amount);if(!p.amount)return;modal={type:'withdrawalPreview',amount:p.amount};track('savings_withdrawal_previewed',{amount:p.amount,goalId:state.activeGoal,beforeWeeks:p.beforeWeeks,afterWeeks:p.afterWeeks});save();render();}
   function confirmWithdrawal(amount){const p=withdrawalPreview(amount);if(!p.amount)return false;track('savings_withdrawal_confirmed',{amount:p.amount,goalId:state.activeGoal,beforeWeeks:p.beforeWeeks,afterWeeks:p.afterWeeks});save();modal=null;withdrawSaving(p.amount);return true;}
-  function resetProfile(){localStorage.removeItem(STORAGE_KEY);state=freshState();adultUnlocked=false;introReplay=false;modal=null;route='onboarding';render();}
+  function resetProfile(){if(window.FINPET_STORAGE?.remove)window.FINPET_STORAGE.remove(STORAGE_KEY);else localStorage.removeItem(STORAGE_KEY);state=freshState();adultUnlocked=false;introReplay=false;modal=null;route='onboarding';render();}
 
   function renderModal() {
     if(modal.type==='purchaseConfirm'){
@@ -1042,6 +1049,7 @@
   function track(name,props={}){
     state.analytics.push({id:uid(),name,timestamp:Date.now(),week:state.wallet.week,day:state.wallet.day,difficultyMode:state.difficultyMode||null,...props});
     state.analytics=state.analytics.slice(-500);
+    try { window.FINPET_ANALYTICS?.event?.(name, props); } catch (e) {}
     if(name==='income_received'&&props.amount) showMotionFeedback('+'+fmt(props.amount),'income');
     else if(name==='expense_completed'&&props.amount) showMotionFeedback('−'+fmt(props.amount),'expense');
     else if(name==='savings_deposit'&&props.amount) showMotionFeedback('+'+fmt(props.amount)+' в копилку','saving');
@@ -1207,6 +1215,19 @@
     },true);
     document.addEventListener('click',e=>{if(route==='adult'&&e.target?.closest?.('[data-back]'))lockAdultGate();},true);
   }
+  window.FINPET_HANDLE_ANDROID_BACK = () => {
+    if (modal) { cancelTrackedModal(); return true; }
+    if (['home','onboarding','weekStart','weekSummary'].includes(route)) return false;
+    if (route === 'help') route = helpReturnRoute || 'profile';
+    else if (['adult','adultGate','settings','progress','achievements'].includes(route)) route = 'profile';
+    else if (['shop','task','pet','sidejob'].includes(route)) route = 'home';
+    else if (route === 'savings') route = 'budget';
+    else route = 'home';
+    taskResult = null;
+    render();
+    return true;
+  };
+
   window.FINPET_DEV = {
     freshState, migrateState, actualsForWeek, weeksToGoal, healthText, version:6,
     getState:()=>JSON.parse(JSON.stringify(state)),
@@ -1227,6 +1248,6 @@
     motion:{enabled:motionEnabled,sync:syncMotionPreference},
     actions:{buyItem,saveAmount,completeWeek,startNextWeek,advanceDay,selectGoal}
   };
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(reg=>reg.update()).catch(() => {});
+  if (!window.__FINPET_ANDROID__ && 'serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(reg=>reg.update()).catch(() => {});
   render();
 })();
