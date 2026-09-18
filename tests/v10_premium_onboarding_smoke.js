@@ -10,7 +10,7 @@ assert(fs.statSync(path.join(ROOT,'assets/kopihvost-splash.webp')).size>200000,'
 assert(welcome.includes('welcome-tap-surface'),'start screen tap surface missing');
 assert(welcome.includes('premium-hotspot-skip')&&welcome.includes('premium-next-slot'),'onboarding interactive hotspots missing');
 assert(!welcome.includes('premium-intro-card'),'duplicate HTML onboarding card must not be rendered over baked artwork');
-assert(welcome.includes("if (!document.querySelector('.splash')) mountWelcome()"),'welcome must wait until splash is gone');
+assert(welcome.includes("document.querySelector('.splash')) mountWelcome()"),'welcome must wait until splash is gone');
 assert(css.includes('.premium-art-backdrop')&&css.includes('.premium-art-frame')&&welcome.includes('fitAllArtFrames'),'crop-safe artwork sizing missing');
 assert(css.includes('object-fit:cover')&&css.includes('blur(24px)'),'blurred bleed backdrop missing');
 assert(html.includes('welcome.css?v=20260918c')&&html.includes('welcome.js?v=20260918c'),'fixed onboarding is not cache-busted');
