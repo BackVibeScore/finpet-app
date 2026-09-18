@@ -1,6 +1,8 @@
 (() => {
   const STORAGE_KEY = 'finpet_mvp_state_v1';
+  const SPLASH_ART = 'assets/kopihvost-splash.webp';
   let welcomeDismissed = false;
+  const preloaded = new Set();
 
   const introCopy = [
     {
@@ -44,39 +46,46 @@
     return !welcomeDismissed && !!s && !s.onboardingDone && Number(s.onboardingStep || 0) === 0;
   }
 
-  function mountWelcome() {
-    if (!shouldShowWelcome() || document.querySelector('[data-welcome-gate]') || document.querySelector('.splash')) return;
-    const gate = document.createElement('section');
-    gate.className = 'welcome-gate premium-welcome';
-    gate.dataset.welcomeGate = '1';
-    gate.innerHTML = `
-      <div class="welcome-shell">
-        <div class="welcome-panel">
-          <span class="welcome-kicker">Добро пожаловать в КопиХвост</span>
-          <h1 class="welcome-title">Твой питомец.<br><strong>Твои деньги.</strong><br>Твои решения.</h1>
-          <p class="welcome-description">Зарабатывай, трать, копи на цели и заботься о своём питомце.</p>
-          <button class="welcome-start" type="button" data-welcome-start>Начать игру <span aria-hidden="true">›</span></button>
-          <button class="welcome-skip" type="button" data-welcome-skip>Пропустить знакомство</button>
+  function preloadArt(src) {
+    if (!src || preloaded.has(src)) return;
+    preloaded.add(src);
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = src;
+  }
+
+  function preloadIntro() {
+    preloadArt(SPLASH_ART);
+    introCopy.forEach(item => preloadArt(item.art));
+  }
+
+  function artMarkup(src, alt = '') {
+    return `
+      <div class="premium-art-backdrop" aria-hidden="true"><img src="${src}" alt=""></div>
+      <div class="premium-art-safe">
+        <div class="premium-art-frame">
+          <img class="premium-art-image" src="${src}" alt="${alt}" loading="eager" decoding="async">
         </div>
       </div>`;
+  }
+
+  function mountWelcome() {
+    if (!shouldShowWelcome() || document.querySelector('[data-welcome-gate]') || document.querySelector('.splash')) return;
+    preloadIntro();
+    const gate = document.createElement('section');
+    gate.className = 'welcome-gate premium-welcome premium-art-screen';
+    gate.dataset.welcomeGate = '1';
+    gate.innerHTML = `${artMarkup(SPLASH_ART, 'КопиХвост. Нажмите для продолжения')}
+      <button class="welcome-tap-surface" type="button" data-welcome-start aria-label="Нажмите для продолжения"></button>`;
     document.body.appendChild(gate);
 
-    const close = (skip = false) => {
+    const close = () => {
       welcomeDismissed = true;
       gate.classList.add('is-leaving');
-      window.setTimeout(() => gate.remove(), 330);
-      if (skip) {
-        const clickSkip = (tries = 0) => {
-          const button = document.querySelector('[data-intro-skip]');
-          if (button) button.click();
-          else if (tries < 12) window.setTimeout(() => clickSkip(tries + 1), 100);
-        };
-        clickSkip();
-      }
+      window.setTimeout(() => gate.remove(), 280);
     };
 
-    gate.querySelector('[data-welcome-start]')?.addEventListener('click', () => close(false));
-    gate.querySelector('[data-welcome-skip]')?.addEventListener('click', () => close(true));
+    gate.querySelector('[data-welcome-start]')?.addEventListener('click', close);
   }
 
   function currentIntroStep(root) {
@@ -100,10 +109,6 @@
     }, { passive: true });
   }
 
-  function progressDots(step) {
-    return introCopy.map((_, index) => `<i class="${index === step ? 'active' : ''}" aria-hidden="true"></i>`).join('');
-  }
-
   function enhanceIntro() {
     const root = document.querySelector('.intro-onboarding');
     if (!root || !isInitialOnboarding() || root.dataset.premiumReady === '1') return;
@@ -115,43 +120,40 @@
     const originalSkip = root.querySelector('[data-intro-skip]');
     if (!main || !next) return;
 
+    preloadIntro();
     root.dataset.premiumReady = '1';
     root.dataset.introStep = String(step);
-    root.classList.add('premium-intro');
+    root.classList.add('premium-intro', 'premium-art-screen');
     next.textContent = view.button;
+    next.setAttribute('aria-label', view.button);
 
     main.innerHTML = `
-      <div class="premium-intro-hero" aria-hidden="true">
-        <img src="${view.art}" alt="">
-        <div class="premium-intro-shade"></div>
-      </div>
-      <div class="premium-intro-card">
-        <div class="premium-intro-copy">
-          <h1>${view.title}</h1>
-          <p>${view.text}</p>
-        </div>
-        <div class="premium-intro-controls">
-          <button class="premium-skip" type="button">Пропустить</button>
-          <div class="premium-progress" aria-label="Экран ${step + 1} из ${introCopy.length}">
-            <div class="premium-dots">${progressDots(step)}</div>
-            <small>${step + 1} из ${introCopy.length}</small>
+      <div class="premium-art-backdrop" aria-hidden="true"><img src="${view.art}" alt=""></div>
+      <div class="premium-art-safe">
+        <div class="premium-art-frame premium-intro-frame">
+          <img class="premium-art-image" src="${view.art}" alt="" loading="eager" decoding="async">
+          <div class="premium-a11y-copy sr-only">
+            <h1>${view.title}</h1>
+            <p>${view.text}</p>
+            <span>Экран ${step + 1} из ${introCopy.length}</span>
           </div>
+          <button class="premium-hotspot premium-hotspot-skip" type="button" aria-label="Пропустить знакомство"></button>
           <div class="premium-next-slot"></div>
         </div>
       </div>`;
 
     main.querySelector('.premium-next-slot')?.appendChild(next);
-    main.querySelector('.premium-skip')?.addEventListener('click', () => originalSkip?.click());
+    main.querySelector('.premium-hotspot-skip')?.addEventListener('click', () => originalSkip?.click());
     addSwipe(root, next);
   }
 
   function tuneSplash() {
     const splash = document.querySelector('.splash');
     if (!splash || splash.dataset.premiumReady === '1') return;
+    preloadIntro();
     splash.dataset.premiumReady = '1';
-    splash.classList.add('premium-splash');
-    const p = splash.querySelector('p');
-    if (p) p.textContent = 'Загружаем твой мир…';
+    splash.classList.add('premium-splash', 'premium-art-screen');
+    splash.innerHTML = artMarkup(SPLASH_ART, 'КопиХвост');
   }
 
   function refresh() {
