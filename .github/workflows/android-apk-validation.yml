@@ -1,8 +1,10 @@
 name: Android APK validation
 
 on:
+  workflow_dispatch:
   push:
     branches:
+      - main
       - feat/android-capacitor-offline
 
 permissions:
@@ -60,18 +62,34 @@ jobs:
           grep -q 'android:screenOrientation="portrait"' android/app/src/main/AndroidManifest.xml
           ! grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
           ! grep -R -n -E 'mc\.yandex\.ru|metrika/tag\.js|ym\(' android/app/src/main/assets/public
-      - name: Build debug APK
+      - name: Build Android APKs
         working-directory: android
-        run: ./gradlew assembleDebug
-      - name: Prepare APK artifact
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk kopihvost-debug.apk
+        run: ./gradlew assembleDebug assembleRelease
+      - name: Verify packaged manifest and Android bundle
+        run: |
+          MERGED_MANIFEST=$(find android/app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml | head -n 1)
+          test -n "$MERGED_MANIFEST"
+          ! grep -q 'android.permission.INTERNET' "$MERGED_MANIFEST"
+          unzip -p android/app/build/outputs/apk/debug/app-debug.apk assets/public/index.html > /tmp/kopihvost-index.html
+          ! grep -E -q 'mc\.yandex\.ru|metrika/tag\.js|ym\(' /tmp/kopihvost-index.html
+      - name: Prepare APK artifacts
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk kopihvost-debug.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk kopihvost-release-unsigned.apk
       - uses: actions/upload-artifact@v4
         with:
           name: kopihvost-debug-apk
           path: kopihvost-debug.apk
           if-no-files-found: error
           retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kopihvost-release-unsigned-apk
+          path: kopihvost-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
       - name: Commit generated Android project and lockfile
+        if: github.ref_name == 'feat/android-capacitor-offline'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
