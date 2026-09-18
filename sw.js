@@ -1,4 +1,4 @@
-const CACHE = 'finpet-v13-android-storage-20260918h';
+const CACHE = 'finpet-v12-onboarding-render-fix-20260918c-original-pets-20260918g-android-storage-20260918h';
 const ASSETS = ['./','./index.html','./styles.css','./welcome.css','./content.js','./analytics.js','./storage.js','./app.js','./welcome.js','./manifest.json','./assets/objects.webp','./assets/extras.webp','./assets/worlds.webp','./assets/kopihvost-splash.webp','./assets/onboarding-1.webp','./assets/onboarding-2.webp','./assets/onboarding-3.webp','./assets/onboarding-4.webp'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
