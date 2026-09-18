@@ -15,7 +15,7 @@ npm run android:apk
 ```
 Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-Параметры: applicationId `ru.kopihvost.app`, versionName `0.1.0`, versionCode `1`, minSdk 26, portrait.
+Параметры: applicationId `ru.kopihvost.app`, versionName `0.1.0`, versionCode `1`, minSdk 26, portrait. Android cloud backup и cleartext traffic отключены; прогресс остаётся локальным.
 
 ## Offline и аналитика
 Все runtime-файлы и изображения находятся внутри APK. Android-сборка не зависит от Vercel или service worker.
@@ -45,3 +45,5 @@ keytool -genkeypair -v -keystore kopihvost-release.jks -keyalg RSA -keysize 2048
 
 ## AppMetrica
 Точка расширения: `window.FINPET_ANALYTICS.event(name, params)`. Сейчас Android adapter no-op; позже сюда подключается AppMetrica.
+
+Release unsigned APK собирается командой `cd android && ./gradlew assembleRelease` и появляется в `android/app/build/outputs/apk/release/app-release-unsigned.apk`.
