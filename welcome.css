@@ -57,6 +57,7 @@
 @keyframes premiumFadeOut{to{opacity:0}}
 @keyframes premiumArtIn{from{opacity:.5;transform:translate3d(0,6px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
 
+/* v8 explicit in-app motion override */
 html[data-motion="off"] .welcome-gate,html[data-motion="off"] .welcome-gate *,html[data-motion="off"] .splash,html[data-motion="off"] .splash *,html[data-motion="off"] .premium-intro-frame{animation:none!important;transition:none!important}
 @media (prefers-reduced-motion:reduce){.welcome-gate,.welcome-gate *,.splash,.splash *,.premium-intro-frame{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){html[data-motion="on"] .welcome-gate{animation:premiumFadeIn .32s ease-out both!important}html[data-motion="on"] .welcome-gate.is-leaving{animation:premiumFadeOut .28s ease forwards!important}html[data-motion="on"] .premium-intro-frame{animation:premiumArtIn .3s ease-out both!important}}
