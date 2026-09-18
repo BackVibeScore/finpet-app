@@ -14,6 +14,7 @@ for(const legacy of ['.age-7-11','.age-15-17','.difficulty-settings','.adult-hol
   req(!css.includes(legacy),'legacy CSS selector remains: '+legacy);
 }
 req(!/@keyframes\s+adultHold\b/.test(css),'legacy adultHold keyframes remain');
+req(!app.includes("[data-adult-hold]")&&!app.includes('adultHoldTimer')&&!app.includes('adultHoldStartedAt'),'legacy adult-hold runtime binding remains');
 
 req(app.includes("function ageModeClass(){ return `mode-${state.difficultyMode||'easy'}`; }"),'difficulty mode class contract changed');
 req(app.includes('parent-quiz-screen')&&app.includes('parent-answer'),'current arithmetic parent gate missing');
