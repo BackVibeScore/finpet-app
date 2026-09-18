@@ -183,7 +183,7 @@ html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!i
 /* ===== V11 COHERENT PREMIUM PETS ===== */
 /* Only these two nested groups move: breathing and a short response.
    Grounded origin keeps feet planted; every accessory inherits the same motion. */
-.pet-svg.pet-solid{isolation:isolate;overflow:visible;animation:none!important;transform:none!important}
+html .pet-svg.pet-solid.pet-layered{isolation:isolate;overflow:visible;animation:none!important;transform:none!important}
 .pet-solid .pet-art-layer{pointer-events:none;mix-blend-mode:normal}
 .pet-solid .pet-composite,.pet-solid .pet-response{transform-box:view-box;transform-origin:320px var(--pet-ground);animation:none!important}
 .pet-solid .pet-accessory-slot,.pet-solid .pet-accessory-shape,.pet-solid .pet-ground-shadow{animation:none!important;pointer-events:none}
