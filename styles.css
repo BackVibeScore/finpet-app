@@ -178,25 +178,3 @@ html[data-motion="on"] .pet-svg.expression-sad .pet-ear-left{animation-duration:
 html[data-motion="on"] .pet-svg.expression-sad .pet-ear-right{animation-duration:7.9s!important}
 html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!important}
 /* ===== END V9 ===== */
-
-
-/* ===== V11 COHERENT PREMIUM PETS ===== */
-/* Only these two nested groups move: breathing and a short response.
-   Grounded origin keeps feet planted; every accessory inherits the same motion. */
-html .pet-svg.pet-solid.pet-layered{isolation:isolate;overflow:visible;animation:none!important;transform:none!important}
-.pet-solid .pet-art-layer{pointer-events:none;mix-blend-mode:normal}
-.pet-solid .pet-composite,.pet-solid .pet-response{transform-box:view-box;transform-origin:320px var(--pet-ground);animation:none!important}
-.pet-solid .pet-accessory-slot,.pet-solid .pet-accessory-shape,.pet-solid .pet-ground-shadow{animation:none!important;pointer-events:none}
-.pet-solid .pet-accessory-shape{filter:drop-shadow(0 3px 3px #25263626)}
-.pet-solid.expression-sad{filter:saturate(.9)}
-.avatar .pet-solid{width:52px;height:52px}.pet-pick .pet-solid{width:82px;height:94px}
-.pet-week-result .pet-solid{width:108px;height:130px}.splash-mark .pet-solid{width:96px;height:108px}
-@keyframes petGroundedBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.003,1.008)}}
-@keyframes petGroundedResponse{0%,100%{transform:rotate(0)}30%{transform:rotate(-1deg)}65%{transform:rotate(.65deg)}}
-html[data-motion="on"] .pet-solid .pet-composite{animation:petGroundedBreath var(--pet-breath-duration,4.4s) ease-in-out infinite!important}
-html[data-motion="on"] .pet-solid.is-reacting .pet-response{animation:petGroundedResponse .65s ease-in-out 1!important}
-/* Stop legacy stage wandering, bouncing and sleep scaling from stacking with the rig. */
-.world-scene .pet-stage:has(.pet-solid){animation:none!important;transform:translateX(-50%)!important}
-html[data-motion="off"] .pet-solid .pet-composite,html[data-motion="off"] .pet-solid .pet-response{animation:none!important;transform:none!important}
-@media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .pet-solid .pet-composite,html:not([data-motion="on"]) .pet-solid .pet-response{animation:none!important;transform:none!important}}
-/* ===== END V11 ===== */

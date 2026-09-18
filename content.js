@@ -1,13 +1,13 @@
 window.FINPET_CONTENT = {
   pets: [
-    { id: 'cat', name: 'Кот', species: 'cat', art: 'assets/pets/cat.webp', desc: 'Спокойный исследователь города.' },
-    { id: 'dog', name: 'Собака', species: 'dog', art: 'assets/pets/dog.webp', desc: 'Энергичный друг, который любит прогулки.' },
-    { id: 'mumo', name: 'Мумо', species: 'mumo', art: 'assets/pets/mumo.webp', desc: 'Фантастическое городское существо.' }
+    { id: 'cat', name: 'Кот', species: 'cat', desc: 'Спокойный исследователь города.' },
+    { id: 'dog', name: 'Собака', species: 'dog', desc: 'Энергичный друг, который любит прогулки.' },
+    { id: 'mumo', name: 'Мумо', species: 'mumo', desc: 'Фантастическое городское существо.' }
   ],
   petColors: ['#7C8CF8', '#65C3B8', '#F0A56B', '#D28BDF', '#7FB4E8'],
   accessories: [
-    {id:'none', name:'Без аксессуара', slot:'none'}, {id:'cap', name:'Кепка', slot:'head'}, {id:'scarf', name:'Шарф', slot:'neck'}, {id:'badge', name:'Значок', slot:'chest'},
-    {id:'glasses', name:'Очки', slot:'face'}, {id:'headphones', name:'Наушники', slot:'head'}, {id:'bow', name:'Галстук-бабочка', slot:'neck'}, {id:'backpack', name:'Рюкзак', slot:'back'}
+    {id:'none', name:'Без аксессуара'}, {id:'cap', name:'Кепка'}, {id:'scarf', name:'Шарф'}, {id:'badge', name:'Значок'},
+    {id:'glasses', name:'Очки'}, {id:'headphones', name:'Наушники'}, {id:'bow', name:'Галстук-бабочка'}, {id:'backpack', name:'Рюкзак'}
   ],
   items: [
     {id:'food_basic', category:'Еда', name:'Полезный обед', price:40, need:true, effect:{satiety:24}, icon:'🥣'},
