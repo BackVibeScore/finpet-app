@@ -7,6 +7,7 @@ self.addEventListener('fetch', e => {
   const url=new URL(e.request.url);
   const core=/\/(?:index\.html|styles\.css|welcome\.css|content\.js|app\.js|welcome\.js|manifest\.json)$/.test(url.pathname)||url.pathname.endsWith('/');
   const onboarding=/\/assets\/(?:kopihvost-splash|onboarding-[1-4])\.webp$/.test(url.pathname);
+  const petArt=/\/assets\/pets\/(?:cat|dog|mumo)\.webp$/.test(url.pathname);
   if(core || onboarding || petArt){
     e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{
       if(!r.ok) throw new Error('HTTP '+r.status);
