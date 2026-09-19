@@ -939,6 +939,7 @@
       version:6,
       onboardingDone:false,
       onboardingStep:0,
+      onboardingModeChoice:null,
       onboardingIntroCompleted:false,
       helpLastTopic:null,
       ageMigrationPending:false,
@@ -1013,28 +1014,39 @@
     return migrated;
   }
 
-  function freshDemoState() {
+  function freshDemoState(petOverride = null) {
     const d=freshState();
     d.onboardingDone=true;d.onboardingIntroCompleted=true;d.onboardingStep=(C.introSlides||[]).length+2;
-    d.difficultyMode='easy';d.ageGroup='7-11';d.ageMigrationPending=false;
-    d.pet={...d.pet,type:'cat',name:'Финни',color:C.petColors[0],accessory:'none',development:8};
+    d.difficultyMode='easy';d.ageGroup='7-11';d.ageMigrationPending=false;d.onboardingModeChoice='demo';
+    d.pet={...d.pet,...(petOverride||{}),development:8};
     d.wallet={...d.wallet,balance:1000,savings:0,weeklyIncome:1000,week:1,day:1,nextIncomeIn:7};
-    d.activeGoal='home';d.currentEventId=(C.events.find(e=>(e.age||[]).includes('7-11'))||C.events[0]||{}).id||null;
-    d.demoSession={targetPeriods:5,startedAt:Date.now()};
+    d.activeGoal=null;d.currentEventId=(C.events.find(e=>(e.age||[]).includes('7-11'))||C.events[0]||{}).id||null;
+    d.demoSession={targetPeriods:5,startedAt:Date.now(),starterPet:{...d.pet}};
     return d;
   }
-  function startDemoMode() {
-    if(!demoMode) save();
-    demoMode=true;state=freshDemoState();tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_started',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
+  function startDemoMode(options = {}) {
+    const selectedPet={...(options.pet||state.pet||{})};
+    const fromOnboarding=!!options.fromOnboarding||!state.onboardingDone;
+    if(!demoMode){
+      if(fromOnboarding){
+        state.onboardingStep=(C.introSlides||[]).length;
+        state.onboardingModeChoice=null;
+        state.difficultyMode=null;
+        state.ageGroup=null;
+      }
+      save();
+    }
+    demoMode=true;state=freshDemoState(selectedPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_started',{targetPeriods:5,source:fromOnboarding?'mode_select':'developer'});save();render();window.scrollTo(0,0);return true;
   }
   function resetDemoMode() {
     if(!demoMode) return startDemoMode();
+    const starterPet={...(state.demoSession?.starterPet||state.pet||{})};
     if(window.FINPET_STORAGE?.remove) window.FINPET_STORAGE.remove(DEMO_STORAGE_KEY); else localStorage.removeItem(DEMO_STORAGE_KEY);
-    state=freshDemoState();tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_reset',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
+    state=freshDemoState(starterPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_reset',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
   }
   function exitDemoMode() {
     if(!demoMode) return false;
-    save();demoMode=false;state=migrateState(loadRawState(STORAGE_KEY),STORAGE_KEY);adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;route='adult';render();window.scrollTo(0,0);return true;
+    save();demoMode=false;state=migrateState(loadRawState(STORAGE_KEY),STORAGE_KEY);adultUnlocked=false;modal=null;taskResult=null;editingPlan=false;route=state.onboardingDone?'home':'onboarding';render();window.scrollTo(0,0);return true;
   }
   function demoCompletePeriod() {
     if(!demoMode) return false;
@@ -1042,16 +1054,31 @@
     if(!planForWeek()){toast('Сначала подтвердите план периода');return false;}
     completeWeek();return true;
   }
+  function demoGuideState() {
+    const actual=actualsForWeek(),week=state.wallet.week;
+    const checklist=[
+      {id:'plan',label:'План бюджета',done:!!planForWeek(),route:'weekStart',hint:'Сначала распределите недельный бюджет. Так появится основа для сравнения плана и факта.'},
+      {id:'goal',label:'Финансовая цель',done:!!state.activeGoal||state.completedGoals.length>0,route:'goals',hint:'Выберите финансовую цель. После этого копилка покажет, насколько цель становится ближе.'},
+      {id:'task',label:'Финансовое задание',done:state.transactions.some(t=>t.week===week&&t.source==='task'),route:'tasks',hint:'Выполните одно задание. Оно показывает обучение в действии и даёт игровой доход.'},
+      {id:'necessary',label:'Обязательная трата',done:actual.necessary>0,route:'home',hint:'Сделайте обязательную трату — например, покормите питомца или выполните уход.'},
+      {id:'optional',label:'Необязательная трата',done:actual.wants>0,route:'shop',hint:'Теперь попробуйте необязательную покупку или игру и сравните её влияние на бюджет.'},
+      {id:'savings',label:'Накопление',done:actual.savings>0,route:'savings',hint:'Отложите часть монет в копилку. Срок до выбранной цели пересчитается автоматически.'},
+      {id:'period',label:'Итог периода',done:!!state.weekSummary,route:'home',hint:'Завершите период. Приложение сравнит план и факт и объяснит изменение питомца.'}
+    ];
+    const current=checklist.find(x=>!x.done)||checklist[checklist.length-1];
+    return {checklist,current,completed:checklist.filter(x=>x.done).length,total:checklist.length};
+  }
+  function currentDemoAction(step) {
+    if(!step||step.done) return '';
+    if(step.id==='period') return '<button class="btn primary demo-next-button" data-demo-complete>Показать итог периода</button>';
+    return `<button class="btn secondary demo-next-button" data-demo-guide-route="${esc(step.route)}">Открыть нужный раздел</button>`;
+  }
   function demoStrip() {
     if(!demoMode) return '';
-    const target=Number(state.demoSession?.targetPeriods||5),period=Math.min(target,Math.max(1,state.wallet.week));
+    const target=Number(state.demoSession?.targetPeriods||5),period=Math.min(target,Math.max(1,state.wallet.week)),guide=demoGuideState();
     const complete=state.weekSummary&&state.wallet.week>=target;
-    const finishButton=route==='home'&&!state.weekSummary?'<button class="demo-action" data-demo-complete>Завершить период</button>':'';
-    return `<div class="demo-strip" role="status"><div><b>Демонстрационный режим</b><span>${complete?'Сценарий из 5 периодов пройден':`Период ${period} из ${target}`}</span></div><div class="demo-actions">${finishButton}<button class="demo-action" data-demo-reset>Сбросить</button><button class="demo-action demo-exit" data-demo-exit>Выйти</button></div></div>`;
-  }
-  function demoAdultControls() {
-    if(demoMode) return '<div class="adult-demo-card"><div><div class="eyebrow">Демонстрационный режим</div><h3>Режим эксперта активен</h3><p>Тестовое состояние хранится отдельно от обычного профиля.</p></div><div class="demo-card-actions"><button class="btn secondary" data-demo-reset>Сбросить демонстрацию</button><button class="btn primary" data-demo-exit>Выйти из демонстрации</button></div></div>';
-    return '<div class="adult-demo-card"><div><div class="eyebrow">Демонстрационный режим</div><h3>Проверить обязательный сценарий</h3><p>Позволяет пройти минимум 5 игровых периодов без ожидания реального времени. Обычный профиль не изменяется.</p></div><button class="btn primary block" data-demo-start>Запустить демонстрацию</button></div>';
+    const action=currentDemoAction(guide.current);
+    return `<aside class="demo-guide" aria-label="Подсказки демо-режима"><div class="demo-guide-top"><div><span class="demo-badge">DEMO</span><b>Период ${period} из ${target}</b></div><div class="demo-guide-tools"><button data-demo-reset>Сбросить</button><button data-demo-exit>Выйти</button></div></div><div class="demo-next"><span>Шаг ${Math.min(guide.completed+1,guide.total)} из ${guide.total}</span><strong>${complete?'Демонстрация пройдена':esc(guide.current.label)}</strong><p>${complete?'Пять последовательных периодов завершены. Можно выйти из демо или сбросить сценарий.':esc(guide.current.hint)}</p>${complete?'':action}</div><details class="demo-checklist" ${period===1?'open':''}><summary>Что уже показано · ${guide.completed}/${guide.total}</summary><div>${guide.checklist.map(x=>`<span class="${x.done?'done':''}"><i>${x.done?'✓':'○'}</i>${esc(x.label)}</span>`).join('')}</div></details></aside>`;
   }
 
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
@@ -1176,6 +1203,7 @@
     document.querySelectorAll('[data-demo-reset]').forEach(b=>b.onclick=resetDemoMode);
     document.querySelectorAll('[data-demo-exit]').forEach(b=>b.onclick=exitDemoMode);
     document.querySelectorAll('[data-demo-complete]').forEach(b=>b.onclick=demoCompletePeriod);
+    document.querySelectorAll('[data-demo-guide-route]').forEach(b=>b.onclick=()=>{route=b.dataset.demoGuideRoute||'home';render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-feedback-route]').forEach(b=>b.onclick=()=>{const target=b.dataset.feedbackRoute;modal=null;route=target||'home';render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{route=b.dataset.route;taskResult=null;if(route==='sidejob')track('side_job_opened',{source:'navigation'});if(route!=='weekStart')editingPlan=false;render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{route=route==='help'?(helpReturnRoute||'profile'):['adult','adultGate'].includes(route)?'profile':(route==='shop'||route==='task'||route==='pet'||route==='sidejob')?'home':route==='savings'?'budget':'profile';taskResult=null;render();});
@@ -1195,7 +1223,7 @@
   let parentPuzzleState = null;
   let parentGateMessage = '';
 
-  function difficultyLabel(mode=state.difficultyMode){ return mode==='medium'?'Средний':'Лёгкий'; }
+  function difficultyLabel(mode=state.difficultyMode){ if(demoMode)return 'Демо'; return mode==='medium'?'Средний':'Лёгкий'; }
   function modeAges(s=state){ return s.difficultyMode==='medium'?['12-14','15-17']:['7-11']; }
   function syncModeCompatibility(s=state){ s.ageGroup=s.difficultyMode==='medium'?'12-14':s.difficultyMode==='easy'?'7-11':null; return s.ageGroup; }
   function modeIncludes(list,s=state){ const arr=Array.isArray(list)?list:[]; return !arr.length || modeAges(s).some(a=>arr.includes(a)); }
@@ -1295,16 +1323,29 @@
       app.querySelector('[data-intro-skip]').onclick=skipInitialIntro;app.querySelector('[data-onboard-next]').onclick=advanceInitialIntro;return;
     }
     if(step===slides.length){
-      const modes=[['easy','Лёгкий','Меньше текста, проще ситуации и больше подсказок.'],['medium','Средний','Больше самостоятельных решений и сложнее финансовые ситуации.']];
-      app.innerHTML=`<section class="onboarding difficulty-onboarding"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main age-select-main"><div><div class="eyebrow">Шаг 1 из 2</div><h1>Как будем играть?</h1><p>Выбери режим, с которым начнёшь игру.</p></div><div class="age-grid difficulty-grid">${modes.map(m=>`<button class="select-card ${state.difficultyMode===m[0]?'active':''}" data-difficulty="${m[0]}"><h3>${m[1]}</h3><p>${m[2]}</p></button>`).join('')}</div></div><button class="btn primary block" data-difficulty-next ${!state.difficultyMode?'disabled':''}>Создать питомца</button></section>`;
-      app.querySelectorAll('[data-difficulty]').forEach(b=>b.onclick=()=>{setDifficulty(b.dataset.difficulty,{initial:true});render();});
+      const selected=state.onboardingModeChoice||state.difficultyMode;
+      const modes=[
+        ['easy','Лёгкий','Меньше текста, проще ситуации и больше подсказок.'],
+        ['medium','Средний','Больше самостоятельных решений и сложнее финансовые ситуации.'],
+        ['demo','Демо','Быстро посмотреть основные возможности. Мы будем подсказывать следующий шаг.']
+      ];
+      app.innerHTML=`<section class="onboarding difficulty-onboarding"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main age-select-main"><div><div class="eyebrow">Шаг 1 из 2</div><h1>Как будем играть?</h1><p>Выбери обычный режим или быстрый сценарий знакомства.</p></div><div class="age-grid difficulty-grid difficulty-grid-three">${modes.map(m=>`<button class="select-card mode-card mode-${m[0]} ${selected===m[0]?'active':''}" data-difficulty="${m[0]}"><div class="mode-card-title"><h3>${m[1]}</h3>${m[0]==='demo'?'<span>Для знакомства</span>':''}</div><p>${m[2]}</p></button>`).join('')}</div></div><button class="btn primary block" data-difficulty-next ${!selected?'disabled':''}>Создать питомца</button></section>`;
+      app.querySelectorAll('[data-difficulty]').forEach(b=>b.onclick=()=>{
+        const mode=b.dataset.difficulty;
+        state.onboardingModeChoice=mode;
+        if(mode==='demo'){
+          state.difficultyMode='easy';syncModeCompatibility(state);state.ageMigrationPending=false;state.currentChainId=null;state.currentEventId=selectEventId(state,true);track('demo_mode_selected',{source:'onboarding'});save();
+        }else setDifficulty(mode,{initial:true});
+        render();
+      });
       app.querySelector('[data-difficulty-next]').onclick=()=>{state.onboardingStep=slides.length+1;save();render();};return;
     }
-    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2</div><h1>Создай друга</h1><p>Выбери питомца, цвет и аксессуар.</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Основной цвет</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>Получить 1000 монет</button></div></section>`;
+    const isDemoChoice=state.onboardingModeChoice==='demo';
+    app.innerHTML=`<section class="onboarding pet-create"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main pet-create-main"><div><div class="eyebrow">Шаг 2 из 2${isDemoChoice?' · Демо':''}</div><h1>Создай друга</h1><p>${isDemoChoice?'Выбери питомца — он будет сопровождать быстрый демонстрационный сценарий.':'Выбери питомца, цвет и аксессуар.'}</p></div><div class="pet-grid">${C.pets.map(p=>`<button class="select-card pet-pick ${state.pet.type===p.id?'active':''}" data-pet="${p.id}">${petSVG(p.id,state.pet.color,state.pet.accessory)}<div><h3>${p.name}</h3><p>${p.desc}</p></div></button>`).join('')}</div><div class="field"><label for="petName">Имя питомца</label><input id="petName" maxlength="14" value="${esc(state.pet.name)}"></div><div class="field"><label>Основной цвет</label><div class="color-row">${C.petColors.map(c=>`<button class="color-dot ${state.pet.color===c?'active':''}" style="background:${c}" data-color="${c}" aria-label="Выбрать цвет ${c}"></button>`).join('')}</div></div><div class="field accessory-field"><label for="accessory">Аксессуар</label><select id="accessory">${C.accessories.map(a=>`<option value="${a.id}" ${state.pet.accessory===a.id?'selected':''}>${a.name}</option>`).join('')}</select></div></div><div class="onboard-actions"><button class="btn primary block" data-start>${isDemoChoice?'Начать демо':'Получить 1000 монет'}</button></div></section>`;
     const rememberName=()=>{const input=app.querySelector('#petName');if(input)state.pet.name=(input.value||'Финни').slice(0,14);};
     app.querySelectorAll('[data-pet]').forEach(b=>b.onclick=()=>{rememberName();state.pet.type=b.dataset.pet;save();render();});app.querySelectorAll('[data-color]').forEach(b=>b.onclick=e=>{e.preventDefault();rememberName();state.pet.color=b.dataset.color;save();render();});
     app.querySelector('#accessory').onchange=e=>{rememberName();state.pet.accessory=e.target.value;track('accessory_selected',{accessory:e.target.value,petType:state.pet.type});save();render();};app.querySelector('#petName').oninput=e=>{state.pet.name=e.target.value;save();};
-    app.querySelector('[data-start]').onclick=()=>{rememberName();state.pet.name=(state.pet.name||'Финни').trim().slice(0,14)||'Финни';if(!state.difficultyMode)setDifficulty('easy',{initial:true});state.onboardingDone=true;state.onboardingIntroCompleted=true;state.onboardingStep=slides.length+2;tx('income',1000,'Доход','Стартовый недельный бюджет','onboarding');state.currentEventId=selectEventId(state,true);state.weekNeedsPlanning=true;track('pet_created',{type:state.pet.type,difficultyMode:state.difficultyMode,accessory:state.pet.accessory});track('week_started',{week:1,income:1000});save();route='weekStart';render();};
+    app.querySelector('[data-start]').onclick=()=>{rememberName();state.pet.name=(state.pet.name||'Финни').trim().slice(0,14)||'Финни';if(state.onboardingModeChoice==='demo'){const selectedPet={...state.pet};track('pet_created',{type:selectedPet.type,difficultyMode:'demo',accessory:selectedPet.accessory});save();startDemoMode({pet:selectedPet,fromOnboarding:true});return;}if(!state.difficultyMode)setDifficulty('easy',{initial:true});state.onboardingDone=true;state.onboardingIntroCompleted=true;state.onboardingStep=slides.length+2;tx('income',1000,'Доход','Стартовый недельный бюджет','onboarding');state.currentEventId=selectEventId(state,true);state.weekNeedsPlanning=true;track('pet_created',{type:state.pet.type,difficultyMode:state.difficultyMode,accessory:state.pet.accessory});track('week_started',{week:1,income:1000});save();route='weekStart';render();};
   }
 
   function renderAgeMigration(){
@@ -1366,7 +1407,7 @@
     const p=parentPuzzle();return `<section class="screen adult-screen parent-quiz-screen">${topbar('Для взрослых',true)}<div class="adult-illustration">${learningArtwork('adult')}</div><h2>Небольшая проверка</h2><p>Чтобы открыть раздел, выберите ответ: <b>${p.a} + ${p.b} = ?</b></p><div class="parent-quiz" aria-label="Проверка для взрослого">${p.options.map(x=>`<button class="parent-answer" data-parent-puzzle="${x}">${x}</button>`).join('')}</div>${parentGateMessage?`<p class="parent-gate-message" role="status">${parentGateMessage}</p>`:''}<p class="subtle">Это защита от случайного входа, а не пароль.</p></section>`;
   }
   function adultScreen(){
-    const g=goalView(),topics=completedLearningTopics(),world=worldStageData();return `<section class="screen adult-screen">${topbar('Для взрослых',true)}<div class="adult-summary"><div>${learningArtwork('adult')}</div><div><div class="eyebrow">Цель приложения</div><h2>Учиться принимать финансовые решения без оценки ребёнка</h2><p>Питомец, недели и цели показывают последствия выбора в безопасной игровой среде.</p></div></div><div class="adult-metrics"><div><span>Режим игры</span><b>${difficultyLabel()}</b></div><div><span>Завершено недель</span><b>${state.weekHistory.length}</b></div><div><span>Выполнено заданий</span><b>${state.completedTasks.length}</b></div><div><span>Мир</span><b>Этап ${world.id}</b></div></div><div class="section-title"><h2>Текущая цель</h2></div><div class="adult-goal"><b>${g?esc(g.name):'Пока не выбрана'}</b><span>${g?`${fmt(state.wallet.savings)} из ${fmt(goalTarget())} монет`:'Ребёнок сможет выбрать её в разделе целей.'}</span></div><div class="section-title"><h2>Пройденные темы</h2></div>${topics.length?`<div class="topic-chips">${topics.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'<div class="empty-state small-empty"><div><b>Темы ещё не завершены</b><span>Они появятся после выполнения игровых заданий.</span></div></div>'}<div class="section-title"><h2>Чему учат механики</h2></div><div class="adult-mechanics">${(C.adultMechanics||[]).map(([n,d])=>`<details><summary>${esc(n)}</summary><p>${esc(d)}</p></details>`).join('')}</div>${demoAdultControls()}<div class="adult-reset"><button class="linkbtn danger" data-reset>${demoMode?'Сбросить демонстрацию':'Удалить локальный профиль'}</button><p>Будут удалены данные только на этом устройстве. Потребуется отдельное подтверждение.</p></div></section>`;
+    const g=goalView(),topics=completedLearningTopics(),world=worldStageData();return `<section class="screen adult-screen">${topbar('Для взрослых',true)}<div class="adult-summary"><div>${learningArtwork('adult')}</div><div><div class="eyebrow">Цель приложения</div><h2>Учиться принимать финансовые решения без оценки ребёнка</h2><p>Питомец, недели и цели показывают последствия выбора в безопасной игровой среде.</p></div></div><div class="adult-metrics"><div><span>Режим игры</span><b>${difficultyLabel()}</b></div><div><span>Завершено недель</span><b>${state.weekHistory.length}</b></div><div><span>Выполнено заданий</span><b>${state.completedTasks.length}</b></div><div><span>Мир</span><b>Этап ${world.id}</b></div></div><div class="section-title"><h2>Текущая цель</h2></div><div class="adult-goal"><b>${g?esc(g.name):'Пока не выбрана'}</b><span>${g?`${fmt(state.wallet.savings)} из ${fmt(goalTarget())} монет`:'Ребёнок сможет выбрать её в разделе целей.'}</span></div><div class="section-title"><h2>Пройденные темы</h2></div>${topics.length?`<div class="topic-chips">${topics.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'<div class="empty-state small-empty"><div><b>Темы ещё не завершены</b><span>Они появятся после выполнения игровых заданий.</span></div></div>'}<div class="section-title"><h2>Чему учат механики</h2></div><div class="adult-mechanics">${(C.adultMechanics||[]).map(([n,d])=>`<details><summary>${esc(n)}</summary><p>${esc(d)}</p></details>`).join('')}</div>${demoMode?'':`<div class="adult-reset"><button class="linkbtn danger" data-reset>Удалить локальный профиль</button><p>Будут удалены данные только на этом устройстве. Потребуется отдельное подтверждение.</p></div>`}</section>`;
   }
 
   if(document?.addEventListener&&!window.__finpetV6Events){
@@ -1409,7 +1450,7 @@
     difficulty:{label:difficultyLabel,ages:modeAges,set:setDifficulty},
     motion:{enabled:motionEnabled,sync:syncMotionPreference},
     planning:{confirm:confirmWeekPlan,initial:()=>state.initialWeekPlan?JSON.parse(JSON.stringify(state.initialWeekPlan)):null},
-    demo:{start:startDemoMode,reset:resetDemoMode,exit:exitDemoMode,completePeriod:demoCompletePeriod,isActive:()=>demoMode},
+    demo:{start:startDemoMode,reset:resetDemoMode,exit:exitDemoMode,completePeriod:demoCompletePeriod,isActive:()=>demoMode,guide:()=>JSON.parse(JSON.stringify(demoGuideState()))},
     feedback:{build:buildFinancialFeedback},
     actions:{buyItem,saveAmount,completeWeek,startNextWeek,advanceDay,selectGoal}
   };
