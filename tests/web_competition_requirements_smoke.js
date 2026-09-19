@@ -52,7 +52,8 @@ assert(periods[2].id==='shortage'&&periods[4].id==='growth','demo period scenari
 let guide=dev.demo.guide();
 assert(guide.period.id==='budget'&&guide.current.id==='plan'&&guide.completed===0,'demo guide must begin with the budget scenario');
 for(let week=1;week<=5;week++){
-  const confirmed=dev.planning.confirm({necessary:400,wants:100,savings:200,reserve:300});
+  const demoPlan=week===3?{necessary:260,wants:80,savings:80,reserve:100}:{necessary:400,wants:100,savings:200,reserve:300};
+  const confirmed=dev.planning.confirm(demoPlan);
   assert(confirmed.ok,'demo plan confirmation failed on week '+week);
   if(week===1){guide=dev.demo.guide();assert(guide.current.id==='goal','demo guide did not advance after planning');dev.actions.selectGoal('home');}
   if(week===3){guide=dev.demo.guide();assert(guide.period.id==='shortage'&&guide.current.id==='shortage','third period must guide to an insufficient purchase');dev.confirmations.openPurchase('special_console');assert(dev.demo.guide().current.id==='task','insufficient purchase did not advance demo guidance');dev.confirmations.cancel();}
