@@ -1,8 +1,10 @@
 (() => {
   const C = window.FINPET_CONTENT;
   const STORAGE_KEY = 'finpet_mvp_state_v1'; // keep key for backward-compatible migration
+  const DEMO_STORAGE_KEY = 'finpet_demo_state_v1';
   const app = document.getElementById('app');
-  let state = migrateState(loadRawState());
+  let demoMode = false;
+  let state = migrateState(loadRawState(STORAGE_KEY), STORAGE_KEY);
   window.FINPET_STORAGE?.saveState?.(STORAGE_KEY, state);
   let route = !state.onboardingDone ? 'onboarding' : (state.weekSummary ? 'weekSummary' : (state.weekNeedsPlanning ? 'weekStart' : 'home'));
   let modal = null;
@@ -17,16 +19,17 @@
   let helpReturnRoute = 'profile';
   setTimeout(() => { showingSplash = false; render(); }, 650);
 
-  function loadRawState() {
+  function loadRawState(storageKey = STORAGE_KEY) {
     try {
-      if (window.FINPET_STORAGE?.loadSync) return window.FINPET_STORAGE.loadSync(STORAGE_KEY);
-      return JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (window.FINPET_STORAGE?.loadSync) return window.FINPET_STORAGE.loadSync(storageKey);
+      return JSON.parse(localStorage.getItem(storageKey));
     } catch (e) { return null; }
   }
 
   function save() {
-    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(STORAGE_KEY, state);
-    else localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const storageKey = demoMode ? DEMO_STORAGE_KEY : STORAGE_KEY;
+    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(storageKey, state);
+    else localStorage.setItem(storageKey, JSON.stringify(state));
   }
   function clamp(n, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(n) || 0)); }
   function esc(s = '') { return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
@@ -92,7 +95,10 @@
     return '−';
   }
 
-  function planForWeek() { return state.weekPlan && state.weekPlan.week === state.wallet.week ? state.weekPlan : null; }
+  function planForWeek() {
+    if (state.initialWeekPlan && state.initialWeekPlan.week === state.wallet.week) return state.initialWeekPlan;
+    return state.weekPlan && state.weekPlan.week === state.wallet.week ? state.weekPlan : null;
+  }
   function planningBudget() {
     const snap = state.weekSnapshot && state.weekSnapshot.week === state.wallet.week ? state.weekSnapshot : null;
     return snap ? Math.max(state.wallet.balance, snap.startingBalance + actualsForWeek().extraIncome) : state.wallet.balance;
@@ -402,23 +408,38 @@
   function finishTask() {
     const t = C.tasks.find(x => x.id === taskScreen.id); if (!t) return;
     if (!state.completedTasks.includes(t.id)) {
-      state.completedTasks.push(t.id); state.stats.tasksDone++; state.xp += 10; adjustPet({ development: 4, energy: 1 }); earn(t.reward, `Миссия «${t.title}»`, 'task');
+      const beforeBalance = state.wallet.balance;
+      state.completedTasks.push(t.id); state.stats.tasksDone++; state.xp += 10; adjustPet({ energy: 1 }); earn(t.reward, `Миссия «${t.title}»`, 'task');
       if (t.cyberSafety) track('cyber_safety_task_completed', { taskId:t.id, topic:t.topic || null, ageGroup:state.ageGroup });
-      toast(`Дополнительный доход: +${t.reward}`);
+      modal = buildFinancialFeedback(
+        'Задание выполнено',
+        [{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:'Награда',value:`+${fmt(t.reward)} ●`}],
+        'Награда за задание добавлена в обычный баланс. Развитие питомца теперь рассчитывается по итогам всего игрового периода.',
+        [{label:'Продолжить',route:'tasks'},{label:'Открыть бюджет',route:'budget'}]
+      );
     }
     checkAchievements(); save(); taskResult = null; route = 'tasks'; render();
   }
 
   function withdrawSaving(n) {
     n = Math.min(Number(n) || 0, state.wallet.savings); if (n <= 0) return;
-    const beforeWeeks = weeksToGoal();
+    const beforeWeeks = weeksToGoal(), beforeBalance = state.wallet.balance, beforeSavings = state.wallet.savings;
     state.wallet.savings -= n; state.wallet.balance += n;
     tx('saving_withdrawal', n, 'Копилка', 'Возврат из копилки', 'savings');
     state.dayActions.count++;
     track('savings_withdrawal', { amount: n, goalId: state.activeGoal });
     recalculateHealth(); save();
     const afterWeeks = weeksToGoal();
-    modal = { type: 'financialFeedback', title: `Вернули ${fmt(n)} монет`, feedback: { balance: state.wallet.balance, reserve: freeMoney(), goalDelay: beforeWeeks != null && afterWeeks != null ? Math.max(0, afterWeeks - beforeWeeks) : 0, goalWeeks: afterWeeks } };
+    modal = buildFinancialFeedback(
+      `Вернули ${fmt(n)} монет`,
+      [
+        {label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},
+        {label:'Копилка',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},
+        afterWeeks!=null?{label:'До цели',value:`≈ ${afterWeeks} нед.`}:null
+      ],
+      beforeWeeks!=null&&afterWeeks!=null&&afterWeeks>beforeWeeks?'Часть накоплений вернулась на текущие расходы, поэтому путь к цели стал длиннее.':'Монеты вернулись из копилки на текущий баланс.',
+      [{label:'Продолжить',route:'savings'},{label:'Открыть бюджет',route:'budget'}]
+    );
     render();
   }
 
@@ -452,6 +473,29 @@
     return out.slice(0, 2);
   }
 
+
+  function calculatePeriodDevelopment(plan, actual, endingBalance = state.wallet.balance) {
+    const p = plan || {necessary:0,wants:0,savings:0,reserve:0};
+    const a = actual || {necessary:0,wants:0,savings:0};
+    const requiredTarget = Math.max(100, Math.min(expectedNeedsTotal(), Number(p.necessary) || expectedNeedsTotal()));
+    const necessaryCovered = a.necessary >= requiredTarget * 0.75;
+    const necessaryClose = necessaryCovered && Math.abs(a.necessary - Number(p.necessary || 0)) <= Math.max(80, Number(p.necessary || 0) * 0.3);
+    const wantsWithinPlan = a.wants <= Number(p.wants || 0) * 1.2 + 40;
+    const savingsMet = Number(p.savings || 0) > 0 && a.savings >= Number(p.savings || 0) * 0.8;
+    const reserveKept = endingBalance >= Math.max(80, Math.min(250, Number(p.reserve || 0) * 0.6));
+    let score = 0;
+    if (necessaryCovered) score += 2;
+    if (necessaryClose) score += 1;
+    if (wantsWithinPlan) score += 1;
+    if (savingsMet) score += 2;
+    if (reserveKept) score += 1;
+    const explanation = score >= 6
+      ? 'Ты закрыл важные расходы, держался рядом с планом и регулярно откладывал. Питомец стал увереннее.'
+      : score >= 3
+        ? 'Часть плана получилась хорошо. Развитие продолжается, а в следующем периоде можно улучшить ещё один шаг.'
+        : 'Важные решения были не все закрыты по плану. Прогресс не обнуляется — следующий период даёт новую попытку.';
+    return {score,necessaryCovered,necessaryClose,wantsWithinPlan,savingsMet,reserveKept,explanation};
+  }
 
   function completedWeeks(s = state) { return (s.weekHistory || []).length; }
   function desiredWorldStage(s = state) {
@@ -638,13 +682,14 @@
     const reserve = existing?.reserve ?? Math.max(0, available - needs - wants - savings);
     const g = goalView();
     const charges = state.weekOpeningCharges || [];
+    const demo = demoStrip();
     if (state.ageGroup === '7-11') {
-      return `<section class="screen week-screen junior-week"><div class="week-kicker">${editingPlan ? 'Можно поменять' : 'Новая неделя'}</div><h1>Разложим монеты</h1><p class="week-lead">Монет всего ${fmt(available)}. Перекладывай их между четырьмя коробками — всё сразу выбрать не получится.</p>
+      return `<section class="screen week-screen junior-week">${demo}<div class="week-kicker">${editingPlan ? 'Можно поменять' : 'Новая неделя'}</div><h1>Разложим монеты</h1><p class="week-lead">Монет всего ${fmt(available)}. Перекладывай их между четырьмя коробками — всё сразу выбрать не получится.</p>
         ${charges.length ? `<div class="opening-charges"><b>Сначала произошло само</b>${charges.map(c=>`<span>${esc(c.description)} −${fmt(c.amount)}</span>`).join('')}</div>`:''}
         <div class="junior-jars">${jarPlannerRow('Нужно','planNecessary',needs,'●','еда и уход')}${jarPlannerRow('Хочу','planWants',wants,'★','игры и вещи')}${jarPlannerRow('Коплю','planSavings',savings,'◆',g ? g.name : 'на большую цель')}${jarPlannerRow('Оставлю','planReserve',reserve,'○','на потом')}</div>
         <div class="plan-total" id="planTotal" data-budget="${available}">Разложено: ${fmt(needs+wants+savings+reserve)} из ${fmt(available)}</div><button class="btn primary block" data-save-plan>${editingPlan?'Сохранить':'Начать неделю'}</button></section>`;
     }
-    return `<section class="screen week-screen ${state.ageGroup==='15-17'?'teen-week':''}"><div class="week-kicker">${editingPlan ? 'План недели' : 'Новая неделя'}</div><h1>${editingPlan ? 'Обновить распределение' : `Неделя ${state.wallet.week}`}</h1><p class="week-lead">План показывает приоритеты. Он может меняться после событий.</p>
+    return `<section class="screen week-screen ${state.ageGroup==='15-17'?'teen-week':''}">${demo}<div class="week-kicker">${editingPlan ? 'План недели' : 'Новая неделя'}</div><h1>${editingPlan ? 'Обновить распределение' : `Неделя ${state.wallet.week}`}</h1><p class="week-lead">План показывает приоритеты. Он может меняться после событий.</p>
       <div class="card income-card"><span>Доход</span><b>+${fmt(state.wallet.weeklyIncome)} ●</b><small>Доступно после автоматических списаний: ${fmt(availableNow)} ●</small></div>
       ${charges.length ? `<div class="opening-charges"><b>Автоматические списания</b>${charges.map(c=>`<span>${esc(c.description)} −${fmt(c.amount)}</span>`).join('')}</div>`:''}
       <div class="week-context"><div><span>${state.ageGroup==='15-17'?'Базовые расходы':'Примерно необходимое'}</span><b>≈ ${fmt(expectedNeedsTotal())}</b></div><div><span>Текущая цель</span><b>${g ? `${illustration(g.icon,g.name||g.label||g.id)} ${esc(g.name)} · осталось ${fmt(Math.max(0,goalTarget(activeGoal())-goalSaved()))}`:'Не выбрана'}</b></div></div>
@@ -704,7 +749,7 @@
   function weekSummaryScreen() {
     const s=state.weekSummary;if(!s){route='home';return homeScreen();}
     const junior=state.ageGroup==='7-11';
-    return `<section class="screen week-screen summary-screen"><div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>Доп. доход</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?'':`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div><button class="btn primary block" data-next-week>Перейти к новой неделе</button></section>`;
+    return `<section class="screen week-screen summary-screen">${demoStrip()}<div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>Доп. доход</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?'':`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card development-result"><div class="development-result-head"><div><div class="eyebrow">Почему изменился питомец</div><h3>${petStage()}</h3></div><b>${s.development?.delta>0?'+':''}${s.development?.delta||0}</b></div><p>${esc(s.development?.reason||'Развитие рассчитывается по итогам всего игрового периода.')}</p></div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div>${demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)?'<button class="btn primary block" data-demo-exit>Завершить демонстрацию</button>':'<button class="btn primary block" data-next-week>Перейти к новой неделе</button>'}</section>`;
   }
 
   function choicePreview(c,e) {
@@ -722,32 +767,78 @@
     else if(f.goalWeeks!=null)lines.push(`<div><span>До цели</span><b>≈ ${f.goalWeeks} нед.</b></div>`);
     return `<div class="feedback-grid">${lines.slice(0,3).join('')}</div>`;
   }
+  function buildFinancialFeedback(title,changes=[],reason='',actions=[]) {
+    return {type:'financialFeedback',title,changes:(changes||[]).filter(Boolean),reason,actions:(actions||[]).filter(Boolean)};
+  }
+  function financialFeedbackHtml(m) {
+    const rows=(m.changes||[]).filter(Boolean);
+    const changed=rows.length?`<div class="feedback-change-list">${rows.map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div>`:(m.feedback?feedbackHtml(m.feedback):'<p class="subtle">Данные обновлены.</p>');
+    const actions=(m.actions&&m.actions.length?m.actions:[{label:'Продолжить'}]).map((a,i)=>a.route?`<button class="btn ${i===0?'primary':'secondary'}" data-feedback-route="${esc(a.route)}">${esc(a.label)}</button>`:`<button class="btn ${i===0?'primary':'secondary'}" data-close-modal>${esc(a.label)}</button>`).join('');
+    return `<div class="feedback-section"><h3>Что изменилось</h3>${changed}</div><div class="feedback-section"><h3>Почему</h3><p>${esc(m.reason||'Это результат выбранного финансового действия.')}</p></div><div class="feedback-section"><h3>Что дальше</h3><div class="feedback-actions">${actions}</div></div>`;
+  }
   function renderJarValues(){document.querySelectorAll('.jar-plan').forEach(row=>{const input=row.querySelector('input');const area=row.querySelector('.coin-stacks');if(!input||!area)return;const stacks=Math.max(0,Math.round(Number(input.value||0)/100));area.innerHTML=Array.from({length:Math.min(10,stacks)},()=>'<i>●</i>').join('')||'<em>пусто</em>';});}
 
+  function confirmWeekPlan(input) {
+    if (state.initialWeekPlan && state.initialWeekPlan.week === state.wallet.week) return {ok:false,reason:'locked',plan:state.initialWeekPlan};
+    const n=Math.max(0,Number(input?.necessary)||0),w=Math.max(0,Number(input?.wants)||0),savings=Math.max(0,Number(input?.savings)||0); let reserve=Math.max(0,Number(input?.reserve)||0);
+    let total=n+w+savings+reserve; const budget=planningBudget();
+    if(total>budget) return {ok:false,reason:'over',over:total-budget};
+    if(total<budget) reserve+=budget-total;
+    const plan={week:state.wallet.week,necessary:n,wants:w,savings,reserve,createdAt:Date.now(),updatedAt:Date.now()};
+    state.weekPlan={...plan}; state.initialWeekPlan={...plan};
+    if(!state.weekSnapshot||state.weekSnapshot.week!==state.wallet.week) state.weekSnapshot={week:state.wallet.week,startingBalance:state.wallet.balance,startingSavings:state.wallet.savings,pet:{satiety:state.pet.satiety,mood:state.pet.mood,energy:state.pet.energy,care:state.pet.care,development:state.pet.development},worldStage:state.worldProgress.stage,inventoryIds:state.inventory.map(x=>x.id),areas:[...state.worldProgress.areas]};
+    state.weekNeedsPlanning=false; track('budget_planned',{necessary:n,wants:w,savings,reserve,edited:false,ageMode:state.ageGroup}); track('age_mode_experience_started',{ageGroup:state.ageGroup,week:state.wallet.week}); recalculateHealth(); save();
+    return {ok:true,plan:{...plan}};
+  }
+
   function saveWeekPlan() {
-    const n=Math.max(0,Number(document.getElementById('planNecessary')?.value||0)),w=Math.max(0,Number(document.getElementById('planWants')?.value||0)),s=Math.max(0,Number(document.getElementById('planSavings')?.value||0)); let r=Math.max(0,Number(document.getElementById('planReserve')?.value||0));
-    let total=n+w+s+r; const budget=planningBudget(); if(total>budget){toast(`План больше доступной суммы на ${fmt(total-budget)}`);return;} if(total<budget)r+=budget-total;
-    const wasEdit=!!planForWeek(); state.weekPlan={week:state.wallet.week,necessary:n,wants:w,savings:s,reserve:r,createdAt:state.weekPlan?.createdAt||Date.now(),updatedAt:Date.now()};
-    if(!state.weekSnapshot||state.weekSnapshot.week!==state.wallet.week) state.weekSnapshot={week:state.wallet.week,startingBalance:state.wallet.balance,startingSavings:state.wallet.savings,pet:{satiety:state.pet.satiety,mood:state.pet.mood,energy:state.pet.energy,care:state.pet.care},worldStage:state.worldProgress.stage,inventoryIds:state.inventory.map(x=>x.id),areas:[...state.worldProgress.areas]};
-    state.weekNeedsPlanning=false; track('budget_planned',{necessary:n,wants:w,savings:s,reserve:r,edited:wasEdit||editingPlan,ageMode:state.ageGroup}); track('age_mode_experience_started',{ageGroup:state.ageGroup,week:state.wallet.week}); recalculateHealth(); save(); editingPlan=false; route='home'; modal=s>0?{type:'saveFirst',amount:s}:null; render();
+    if(state.initialWeekPlan&&state.initialWeekPlan.week===state.wallet.week){toast('План этой недели уже подтверждён');route='budget';render();return;}
+    const result=confirmWeekPlan({
+      necessary:Number(document.getElementById('planNecessary')?.value||0),
+      wants:Number(document.getElementById('planWants')?.value||0),
+      savings:Number(document.getElementById('planSavings')?.value||0),
+      reserve:Number(document.getElementById('planReserve')?.value||0)
+    });
+    if(!result.ok){if(result.reason==='over')toast(`План больше доступной суммы на ${fmt(result.over)}`);return;}
+    editingPlan=false;route='home';modal=result.plan.savings>0?{type:'saveFirst',amount:result.plan.savings}:null;render();
   }
 
   function quickAction(action) {
-    if(action==='feed'){if(spend(40,'Необходимые расходы','Еда','pet_care')){state.wallet.needsSpent+=40;state.stats.needsFirst++;adjustPet({satiety:24,mood:2});petBubble=state.ageGroup==='15-17'?'Еда закрыта':'Ммм, вкусно!';track('pet_need_completed',{need:'satiety'});}}
-    else if(action==='care'){if(spend(60,'Необходимые расходы','Уход','pet_care')){state.wallet.needsSpent+=60;state.stats.needsFirst++;adjustPet({care:26,mood:2});petBubble=state.ageGroup==='15-17'?'Стало комфортнее':'Теперь гораздо лучше ✦';track('pet_need_completed',{need:'care'});}}
-    else if(action==='play'){if(spend(80,'Желания',state.ageGroup==='15-17'?'Досуг':'Игра с питомцем','pet_play')){adjustPet({mood:18,energy:-8});petBubble=state.ageGroup==='15-17'?'Неплохой перерыв':'Ещё немного поиграем?';}}
+    const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,beforeSatiety=state.pet.satiety,beforeCare=state.pet.care;
+    let title='',reason='',changed=false;
+    if(action==='feed'){if(spend(40,'Необходимые расходы','Еда','pet_care')){state.wallet.needsSpent+=40;state.stats.needsFirst++;adjustPet({satiety:24,mood:2});petBubble=state.ageGroup==='15-17'?'Еда закрыта':'Ммм, вкусно!';track('pet_need_completed',{need:'satiety'});title='Питомец поел';reason='Это обязательный расход: баланс уменьшился, а сытость питомца выросла.';changed=true;}}
+    else if(action==='care'){if(spend(60,'Необходимые расходы','Уход','pet_care')){state.wallet.needsSpent+=60;state.stats.needsFirst++;adjustPet({care:26,mood:2});petBubble=state.ageGroup==='15-17'?'Стало комфортнее':'Теперь гораздо лучше ✦';track('pet_need_completed',{need:'care'});title='Уход выполнен';reason='Это обязательный расход: монет стало меньше, а показатель ухода вырос.';changed=true;}}
+    else if(action==='play'){if(spend(80,'Желания',state.ageGroup==='15-17'?'Досуг':'Игра с питомцем','pet_play')){adjustPet({mood:18,energy:-8});petBubble=state.ageGroup==='15-17'?'Неплохой перерыв':'Ещё немного поиграем?';title='Поиграли вместе';reason='Это необязательный расход: настроение выросло, но свободных монет стало меньше.';changed=true;}}
     else if(action==='sidejob'){if(state.difficultyMode!=='medium')return;route='sidejob';track('side_job_opened',{source:'quick_action'});render();return;}
-    if(state.petWish&&action==='play')state.petWish=null; checkAchievements(); recalculateHealth(); save(); render(); setTimeout(()=>{petBubble='';if(route==='home'||route==='pet')render();},1700);
+    if(state.petWish&&action==='play')state.petWish=null; checkAchievements(); recalculateHealth(); save();
+    if(changed){
+      const changes=[{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
+      if(state.pet.mood!==beforeMood)changes.push({label:'Настроение',value:`${beforeMood} → ${state.pet.mood}`});
+      if(state.pet.satiety!==beforeSatiety)changes.push({label:'Сытость',value:`${beforeSatiety} → ${state.pet.satiety}`});
+      if(state.pet.care!==beforeCare)changes.push({label:'Уход',value:`${beforeCare} → ${state.pet.care}`});
+      modal=buildFinancialFeedback(title,changes,reason,[{label:'Продолжить',route:'home'},{label:'Открыть бюджет',route:'budget'}]);
+    }
+    render(); setTimeout(()=>{petBubble='';if(!modal&&(route==='home'||route==='pet'))render();},1700);
   }
 
   function buyItem(id) {
     const item=C.items.find(x=>x.id===id);if(!item)return;if(item.cosmetic&&state.inventory.some(x=>x.id===item.id)){toast('Этот предмет уже есть');return;}
-    const beforeBalance=state.wallet.balance,delay=item.need?0:purchaseGoalDelay(item.price),beforeFree=freeMoney();
+    const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,delay=item.need?0:purchaseGoalDelay(item.price),beforeFree=freeMoney();
     if(spend(item.price,item.need?'Необходимые расходы':'Желания',item.name,'shop',{itemId:item.id})){
       state.inventory.push({id:item.id,boughtAt:Date.now(),week:state.wallet.week,day:state.wallet.day}); ensurePlacement(item.id);
       if(item.need){state.wallet.needsSpent+=item.price;state.stats.needsFirst++;} else if(item.price>beforeFree||(planForWeek()&&actualsForWeek().wants>planForWeek().wants)){state.stats.impulsePurchases++;track('impulse_purchase',{itemId:item.id,price:item.price});}
-      adjustPet(item.effect||{});if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;petBubble=state.ageGroup==='15-17'?'Пространство изменилось':`${illustration(item.icon,item.name||item.label||item.id)} Теперь это здесь`;
-      checkAchievements();recalculateHealth();recalculateWorldProgress();save();modal={type:'financialFeedback',title:`Куплено: ${item.name}`,feedback:{balance:state.wallet.balance,reserve:freeMoney(),goalDelay:delay,petMood:item.effect?.mood||null}};track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
+      const itemEffect={...(item.effect||{})};delete itemEffect.development;adjustPet(itemEffect);if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;petBubble=state.ageGroup==='15-17'?'Пространство изменилось':`${illustration(item.icon,item.name||item.label||item.id)} Теперь это здесь`;
+      checkAchievements();recalculateHealth();recalculateWorldProgress();save();
+      const changes=[{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
+      if(state.pet.mood!==beforeMood)changes.push({label:'Настроение',value:`${beforeMood} → ${state.pet.mood}`});
+      if(delay>0)changes.push({label:'До цели',value:`примерно +${delay} нед.`});
+      modal=buildFinancialFeedback(
+        `Куплено: ${item.name}`,
+        changes,
+        item.need?'Это обязательная покупка: она поддерживает состояние питомца и учитывается в плане необходимых расходов.':'Это необязательная покупка: она может порадовать питомца, но уменьшает сумму для других решений.',
+        [{label:'Продолжить',route:'shop'},{label:'Открыть бюджет',route:'budget'}]
+      );
+      track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
     }
   }
 
@@ -770,13 +861,26 @@
 
   function completeActiveGoal(g) {
     const target=goalTarget(g); if(state.wallet.savings<target||state.completedGoals.includes(g.id))return false;
-    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalView(g).name}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({development:10,mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',title:goalView(g).name,message:changes[0]||'Цель изменила игровой мир и открыла новый этап.',icon:goalView(g).icon}; return true;
+    const goalName=goalView(g).name,goalIcon=goalView(g).icon;
+    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalName}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',title:goalName,message:changes[0]||'Цель изменила игровой мир и открыла новый этап.',icon:goalIcon,changes:[{label:'Цель',value:'достигнута'},{label:'Копилка',value:`${fmt(state.wallet.savings)} ●`}],reason:'Ты регулярно откладывал монеты и набрал нужную сумму. Рост питомца по-прежнему считается отдельно — по итогам всего периода.'}; return true;
   }
   function saveAmount(n) {
-    n=Math.round(Number(n)||0);if(n<=0||n>state.wallet.balance){toast('Проверь сумму');return;}state.wallet.balance-=n;state.wallet.savings+=n;state.goalContributions++;tx('saving',-n,'Копилка',activeGoal()?`Вклад в цель «${goalView().name}»`:'Вклад в копилку','savings');state.dayActions.count++;state.stats.positiveDecisions++;track('savings_deposit',{amount:n,goalId:state.activeGoal});const g=activeGoal();const done=g?completeActiveGoal(g):false;if(!done)toast(`В копилку: +${n}`);checkAchievements();recalculateHealth();save();if(!done)modal=null;render();
+    n=Math.round(Number(n)||0);if(n<=0||n>state.wallet.balance){toast('Проверь сумму');return;}
+    const beforeBalance=state.wallet.balance,beforeSavings=state.wallet.savings,beforeWeeks=weeksToGoal();
+    state.wallet.balance-=n;state.wallet.savings+=n;state.goalContributions++;tx('saving',-n,'Копилка',activeGoal()?`Вклад в цель «${goalView().name}»`:'Вклад в копилку','savings');state.dayActions.count++;state.stats.positiveDecisions++;track('savings_deposit',{amount:n,goalId:state.activeGoal});const g=activeGoal();const done=g?completeActiveGoal(g):false;checkAchievements();recalculateHealth();save();
+    if(!done){
+      const afterWeeks=weeksToGoal();
+      modal=buildFinancialFeedback(
+        `Отложено ${fmt(n)} монет`,
+        [{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:'Копилка',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},afterWeeks!=null?{label:'До цели',value:`≈ ${afterWeeks} нед.`}:null],
+        beforeWeeks!=null&&afterWeeks!=null&&afterWeeks<beforeWeeks?'Большая цель стала ближе.':'Монеты отделены от текущих трат и теперь лежат в копилке.',
+        [{label:'Продолжить',route:'savings'},{label:'Открыть бюджет',route:'budget'}]
+      );
+    }
+    render();
   }
   function selectGoal(id) {
-    const g=C.goals.find(x=>x.id===id);if(!g||state.completedGoals.includes(id))return;if(state.activeGoal&&state.activeGoal!==id&&state.wallet.savings>0){const ok=confirm('Деньги останутся в копилке и станут прогрессом новой цели. Сменить цель?');if(!ok)return;track('goal_delayed',{previousGoal:state.activeGoal,newGoal:id});}state.activeGoal=id;track('goal_selected',{goalId:id});save();toast(`Цель выбрана: ${goalView(g).name}`);render();
+    const g=C.goals.find(x=>x.id===id);if(!g||state.completedGoals.includes(id))return;if(state.activeGoal&&state.activeGoal!==id&&state.wallet.savings>0){const ok=confirm('Деньги останутся в копилке и станут прогрессом новой цели. Сменить цель?');if(!ok)return;track('goal_delayed',{previousGoal:state.activeGoal,newGoal:id});}state.activeGoal=id;track('goal_selected',{goalId:id});save();modal=buildFinancialFeedback('Цель выбрана',[{label:'Цель',value:goalView(g).name},{label:'Стоимость',value:`${fmt(goalTarget(g))} ●`}],'Теперь каждое пополнение копилки будет показывать, насколько эта цель стала ближе.',[{label:'Продолжить',route:'goals'},{label:'Открыть копилку',route:'savings'}]);render();
   }
 
   function eventImmediateText(e,c) {
@@ -800,7 +904,7 @@
     if(c.nextWeekCost)createFutureObligation({type:c.source==='credit'?'credit':'plannedPayment',amount:c.nextWeekCost,dueInWeeks:1,remainingPayments:1,description:e.title,category:'Необходимые расходы'},e.id);
     if(c.future)createFutureObligation(c.future,e.id);
     if(c.goalTargetDelta&&activeGoal())state.goalAdjustments[state.activeGoal]=(state.goalAdjustments[state.activeGoal]||0)+c.goalTargetDelta;
-    const petEff={...(c.pet||{})};if(c.mood!=null)petEff.mood=(petEff.mood||0)+c.mood;if(c.care!=null)petEff.care=(petEff.care||0)+c.care;if(Object.keys(petEff).length)adjustPet(petEff);if(c.health>0)state.stats.positiveDecisions++;
+    const petEff={...(c.pet||{})};delete petEff.development;if(c.mood!=null)petEff.mood=(petEff.mood||0)+c.mood;if(c.care!=null)petEff.care=(petEff.care||0)+c.care;if(Object.keys(petEff).length)adjustPet(petEff);if(c.health>0)state.stats.positiveDecisions++;
     const chainId=state.currentChainId; if(chainId)advanceStoryChain(chainId,e.id);
     state.eventResolved=true;state.recentEventIds.push(e.id);state.recentEventIds=state.recentEventIds.slice(-8);state.dayActions.count++;recalculateHealth();checkAchievements();track('event_completed',{eventId:e.id,balanceDelta:state.wallet.balance-beforeBalance,chainId});save();const afterWeeks=weeksToGoal();modal={type:'eventResult',title:e.title,result:eventImmediateText(e,c),feedback:{balance:state.wallet.balance,reserve:freeMoney(),goalDelay:Math.max(choiceDelay,beforeWeeks!=null&&afterWeeks!=null?Math.max(0,afterWeeks-beforeWeeks):0),goalWeeks:afterWeeks,petMood:petEff.mood||null}};render();
   }
@@ -810,15 +914,25 @@
   }
 
   function completeWeek() {
-    const plan=planForWeek()||{necessary:0,wants:0,savings:0,reserve:0},actual=actualsForWeek(),snap=state.weekSnapshot||{startingBalance:state.wallet.balance,pet:{mood:state.pet.mood},worldStage:state.worldProgress.stage,inventoryIds:[],areas:['home']};
+    const plan=planForWeek()||{necessary:0,wants:0,savings:0,reserve:0},actual=actualsForWeek(),snap=state.weekSnapshot||{startingBalance:state.wallet.balance,pet:{mood:state.pet.mood,development:state.pet.development},worldStage:state.worldProgress.stage,inventoryIds:[],areas:['home']};
+    const development=calculatePeriodDevelopment(plan,actual,state.wallet.balance),developmentBefore=Number(state.pet.development)||0;
+    state.pet.development=clamp(developmentBefore+development.score);
     const itemsBought=state.inventory.filter(x=>x.week===state.wallet.week).map(x=>C.items.find(i=>i.id===x.id)?.name).filter(Boolean); const beforeStage=state.worldProgress.stage;
-    const summary={week:state.wallet.week,startingBalance:snap.startingBalance,endingBalance:state.wallet.balance,plan:{...plan},actual,petDelta:{mood:state.pet.mood-(snap.pet?.mood??state.pet.mood),wellbeing:petWellbeing()},insights:weekInsights(plan,actual,snap),worldChanges:[]};
+    const summary={week:state.wallet.week,startingBalance:snap.startingBalance,endingBalance:state.wallet.balance,plan:{...plan},actual,development:{before:developmentBefore,after:state.pet.development,delta:state.pet.development-developmentBefore,reason:development.explanation,checks:development},petDelta:{mood:state.pet.mood-(snap.pet?.mood??state.pet.mood),development:state.pet.development-(snap.pet?.development??developmentBefore),wellbeing:petWellbeing()},insights:weekInsights(plan,actual,snap),worldChanges:[]};
     state.weekHistory.push(summary);state.weekHistory=state.weekHistory.slice(-20);recalculateWorldProgress(); if(itemsBought.length)summary.worldChanges.push(`В мире появилось: ${itemsBought.slice(0,3).join(', ')}.`);if(state.worldProgress.stage>beforeStage)summary.worldChanges.push(`Открыт новый этап: ${worldStageData().title}.`);const newAreas=state.worldProgress.areas.filter(a=>!(snap.areas||[]).includes(a));newAreas.forEach(a=>summary.worldChanges.push(`Открыта локация «${C.world.areas.find(x=>x.id===a)?.name||a}».`));if(state.completedGoals.some(g=>state.transactions.some(t=>t.week===state.wallet.week&&t.meta?.goalId===g)))summary.worldChanges.push('Большая цель изменила доступные возможности.');
-    state.weekSummary=summary;if(isBalancedWeek(summary))state.stats.weeksBalanced++;track('budget_plan_vs_fact',{week:state.wallet.week,plan,actual});track('week_completed',{week:state.wallet.week,endingBalance:state.wallet.balance,wellbeing:petWellbeing(),worldStage:state.worldProgress.stage});recalculateHealth();checkAchievements();save();route='weekSummary';render();window.scrollTo(0,0);
+    state.weekSummary=summary;if(isBalancedWeek(summary))state.stats.weeksBalanced++;track('budget_plan_vs_fact',{week:state.wallet.week,plan,actual});track('period_development_calculated',{week:state.wallet.week,score:development.score,before:developmentBefore,after:state.pet.development});track('week_completed',{week:state.wallet.week,endingBalance:state.wallet.balance,wellbeing:petWellbeing(),worldStage:state.worldProgress.stage});recalculateHealth();checkAchievements();save();route='weekSummary';render();window.scrollTo(0,0);
   }
 
   function startNextWeek() {
-    state.weekSummary=null;state.wallet.week++;state.wallet.day=1;state.wallet.nextIncomeIn=7;state.wallet.needsSpent=0;state.wallet.balance+=state.wallet.weeklyIncome;tx('income',state.wallet.weeklyIncome,'Доход',`Доход за неделю ${state.wallet.week}`,'weekly_income');state.weekOpeningCharges=[];state.dayActions={count:0,necessary:0,optional:0,income:0,sideJob:false};processDueObligations({showModal:false,opening:true});track('week_started',{week:state.wallet.week,income:state.wallet.weeklyIncome,automaticCharges:state.weekOpeningCharges.reduce((a,x)=>a+x.amount,0),available:state.wallet.balance});state.weekPlan=null;state.weekSnapshot=null;state.weekNeedsPlanning=true;state.eventResolved=false;state.currentEventId=selectEventId();state.petWish=null;if(state.activityLimits.week!==state.wallet.week)state.activityLimits={week:state.wallet.week,sideJobs:0};state.workState={week:state.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};state.workSession=null;recalculateWorldProgress();recalculateHealth();save();route='weekStart';render();window.scrollTo(0,0);
+    const beforeBalance=state.wallet.balance;
+    state.weekSummary=null;state.wallet.week++;state.wallet.day=1;state.wallet.nextIncomeIn=7;state.wallet.needsSpent=0;state.wallet.balance+=state.wallet.weeklyIncome;tx('income',state.wallet.weeklyIncome,'Доход',`Доход за неделю ${state.wallet.week}`,'weekly_income');state.weekOpeningCharges=[];state.dayActions={count:0,necessary:0,optional:0,income:0,sideJob:false};processDueObligations({showModal:false,opening:true});track('week_started',{week:state.wallet.week,income:state.wallet.weeklyIncome,automaticCharges:state.weekOpeningCharges.reduce((a,x)=>a+x.amount,0),available:state.wallet.balance});state.weekPlan=null;state.initialWeekPlan=null;state.weekSnapshot=null;state.weekNeedsPlanning=true;state.eventResolved=false;state.currentEventId=selectEventId();state.petWish=null;if(state.activityLimits.week!==state.wallet.week)state.activityLimits={week:state.wallet.week,sideJobs:0};state.workState={week:state.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};state.workSession=null;recalculateWorldProgress();recalculateHealth();save();route='weekStart';
+    modal=buildFinancialFeedback(
+      `Новый период: неделя ${state.wallet.week}`,
+      [{label:'Доход',value:`+${fmt(state.wallet.weeklyIncome)} ●`},{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}],
+      state.weekOpeningCharges.length?'Доход начислен, а обязательства из прошлых решений уже учтены в доступном балансе.':'Периодический игровой доход начислен. Теперь его нужно распределить до начала недели.',
+      [{label:'Распределить бюджет',route:'weekStart'}]
+    );
+    render();window.scrollTo(0,0);
   }
   function freshState() {
     return {
@@ -837,7 +951,7 @@
       financialHealth:68,xp:0,streak:1,
       stats:{needsFirst:0,positiveDecisions:0,budgetViews:0,tasksDone:0,impulsePurchases:0,reserveUsed:0,petNeedsIgnored:0,weeksBalanced:0},
       currentEventId:null,currentChainId:null,eventResolved:false,recentEventIds:[],
-      weekNeedsPlanning:true,weekPlan:null,weekSnapshot:null,weekSummary:null,weekHistory:[],weekOpeningCharges:[],
+      weekNeedsPlanning:true,weekPlan:null,initialWeekPlan:null,weekSnapshot:null,weekSummary:null,weekHistory:[],weekOpeningCharges:[],
       dayActions:{count:0,necessary:0,optional:0,income:0,sideJob:false},petWish:null,wishDismissedDay:null,
       analytics:[],nextWeekObligations:[],futureObligations:[],
       worldProgress:{stage:1,areas:['home'],unlocks:[],decor:[]},worldPlacements:{},currentWorldArea:'home',storyChains:{},
@@ -846,7 +960,7 @@
     };
   }
 
-  function migrateState(raw) {
+  function migrateState(raw, storageKey = STORAGE_KEY) {
     const base=freshState();
     if(!raw) return base;
     const rawVersion=Number(raw.version||1);
@@ -860,6 +974,7 @@
       analytics:raw.analytics||[],weekOpeningCharges:raw.weekOpeningCharges||[],futureObligations:raw.futureObligations||[],
       worldProgress:{...base.worldProgress,...(raw.worldProgress||{})},worldPlacements:raw.worldPlacements||{},storyChains:raw.storyChains||{}
     };
+    if(!migrated.initialWeekPlan && migrated.weekPlan && migrated.weekPlan.week===migrated.wallet.week) migrated.initialWeekPlan={...migrated.weekPlan};
     if(rawVersion<2&&raw.onboardingDone){migrated.weekNeedsPlanning=true;migrated.weekPlan=null;migrated.weekSnapshot=null;migrated.weekSummary=null;migrated.eventResolved=false;}
     if(rawVersion<3){
       for(const [idx,o] of (raw.nextWeekObligations||[]).entries()) migrated.futureObligations.push({id:`legacy_${idx}_${Date.now()}`,type:'plannedPayment',amount:Number(o.amount)||0,dueWeek:(raw.wallet?.week||1)+1,dueDay:1,remainingPayments:1,description:o.description||'Обязательство прошлой недели',sourceId:o.source||'legacy',category:'Необходимые расходы',recurring:false,createdWeek:raw.wallet?.week||1,createdDay:raw.wallet?.day||1});
@@ -893,9 +1008,50 @@
     if(migrated.workState.week!==migrated.wallet.week)migrated.workState={week:migrated.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};
     if(!migrated.worldProgress.areas?.includes(migrated.currentWorldArea))migrated.currentWorldArea='home';
     if(!migrated.currentEventId&&migrated.difficultyMode){const pool=eventPoolFor(migrated);migrated.currentEventId=pool.length?pool[(migrated.wallet.week*17+migrated.wallet.day*7)%pool.length].id:(C.events[0]?.id||null);}
-    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(STORAGE_KEY,migrated);
-    else localStorage.setItem(STORAGE_KEY,JSON.stringify(migrated));
+    if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(storageKey,migrated);
+    else localStorage.setItem(storageKey,JSON.stringify(migrated));
     return migrated;
+  }
+
+  function freshDemoState() {
+    const d=freshState();
+    d.onboardingDone=true;d.onboardingIntroCompleted=true;d.onboardingStep=(C.introSlides||[]).length+2;
+    d.difficultyMode='easy';d.ageGroup='7-11';d.ageMigrationPending=false;
+    d.pet={...d.pet,type:'cat',name:'Финни',color:C.petColors[0],accessory:'none',development:8};
+    d.wallet={...d.wallet,balance:1000,savings:0,weeklyIncome:1000,week:1,day:1,nextIncomeIn:7};
+    d.activeGoal='home';d.currentEventId=(C.events.find(e=>(e.age||[]).includes('7-11'))||C.events[0]||{}).id||null;
+    d.demoSession={targetPeriods:5,startedAt:Date.now()};
+    return d;
+  }
+  function startDemoMode() {
+    if(!demoMode) save();
+    demoMode=true;state=freshDemoState();tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_started',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
+  }
+  function resetDemoMode() {
+    if(!demoMode) return startDemoMode();
+    if(window.FINPET_STORAGE?.remove) window.FINPET_STORAGE.remove(DEMO_STORAGE_KEY); else localStorage.removeItem(DEMO_STORAGE_KEY);
+    state=freshDemoState();tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_reset',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
+  }
+  function exitDemoMode() {
+    if(!demoMode) return false;
+    save();demoMode=false;state=migrateState(loadRawState(STORAGE_KEY),STORAGE_KEY);adultUnlocked=true;modal=null;taskResult=null;editingPlan=false;route='adult';render();window.scrollTo(0,0);return true;
+  }
+  function demoCompletePeriod() {
+    if(!demoMode) return false;
+    if(state.weekSummary) return true;
+    if(!planForWeek()){toast('Сначала подтвердите план периода');return false;}
+    completeWeek();return true;
+  }
+  function demoStrip() {
+    if(!demoMode) return '';
+    const target=Number(state.demoSession?.targetPeriods||5),period=Math.min(target,Math.max(1,state.wallet.week));
+    const complete=state.weekSummary&&state.wallet.week>=target;
+    const finishButton=route==='home'&&!state.weekSummary?'<button class="demo-action" data-demo-complete>Завершить период</button>':'';
+    return `<div class="demo-strip" role="status"><div><b>Демонстрационный режим</b><span>${complete?'Сценарий из 5 периодов пройден':`Период ${period} из ${target}`}</span></div><div class="demo-actions">${finishButton}<button class="demo-action" data-demo-reset>Сбросить</button><button class="demo-action demo-exit" data-demo-exit>Выйти</button></div></div>`;
+  }
+  function demoAdultControls() {
+    if(demoMode) return '<div class="adult-demo-card"><div><div class="eyebrow">Демонстрационный режим</div><h3>Режим эксперта активен</h3><p>Тестовое состояние хранится отдельно от обычного профиля.</p></div><div class="demo-card-actions"><button class="btn secondary" data-demo-reset>Сбросить демонстрацию</button><button class="btn primary" data-demo-exit>Выйти из демонстрации</button></div></div>';
+    return '<div class="adult-demo-card"><div><div class="eyebrow">Демонстрационный режим</div><h3>Проверить обязательный сценарий</h3><p>Позволяет пройти минимум 5 игровых периодов без ожидания реального времени. Обычный профиль не изменяется.</p></div><button class="btn primary block" data-demo-start>Запустить демонстрацию</button></div>';
   }
 
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
@@ -950,7 +1106,7 @@
 
   function topbar(title,back=false) {
     const showHelp=route!=='help';
-    return `<header class="topbar"><div class="topbar-title">${back?'<button class="linkbtn back-button" data-back>← Назад</button>':''}<div class="eyebrow">Неделя ${state.wallet.week} · день ${state.wallet.day}</div><h1>${esc(title)}</h1></div><div class="topbar-actions">${showHelp?'<button class="help-button" data-help><b>?</b><span>Помощь</span></button>':''}<div class="balance-pill"><span class="coin">●</span>${fmt(state.wallet.balance)}</div></div></header>${state.workSession&&route==='sidejob'?'':pageArtwork(route)}`;
+    return `<header class="topbar"><div class="topbar-title">${back?'<button class="linkbtn back-button" data-back>← Назад</button>':''}<div class="eyebrow">Неделя ${state.wallet.week} · день ${state.wallet.day}</div><h1>${esc(title)}</h1></div><div class="topbar-actions">${showHelp?'<button class="help-button" data-help><b>?</b><span>Помощь</span></button>':''}<div class="balance-pill"><span class="coin">●</span>${fmt(state.wallet.balance)}</div></div></header>${demoStrip()}${state.workSession&&route==='sidejob'?'':pageArtwork(route)}`;
   }
 
   function skipInitialIntro(){const step=Number(state.onboardingStep||0);state.onboardingIntroCompleted=true;state.onboardingStep=(C.introSlides||[]).length;track('intro_skipped',{replay:false,step});save();render();}
@@ -985,23 +1141,24 @@
   function withdrawalPreview(amount){const n=Math.min(Math.max(0,Number(amount)||0),state.wallet.savings),after=state.wallet.savings-n;return {amount:n,before:state.wallet.savings,after,remaining:activeGoal()?Math.max(0,goalTarget()-after):null,beforeWeeks:weeksForSavedAmount(state.wallet.savings),afterWeeks:weeksForSavedAmount(after)};}
   function openWithdrawalPreview(amount){const p=withdrawalPreview(amount);if(!p.amount)return;modal={type:'withdrawalPreview',amount:p.amount};track('savings_withdrawal_previewed',{amount:p.amount,goalId:state.activeGoal,beforeWeeks:p.beforeWeeks,afterWeeks:p.afterWeeks});save();render();}
   function confirmWithdrawal(amount){const p=withdrawalPreview(amount);if(!p.amount)return false;track('savings_withdrawal_confirmed',{amount:p.amount,goalId:state.activeGoal,beforeWeeks:p.beforeWeeks,afterWeeks:p.afterWeeks});save();modal=null;withdrawSaving(p.amount);return true;}
-  function resetProfile(){if(window.FINPET_STORAGE?.remove)window.FINPET_STORAGE.remove(STORAGE_KEY);else localStorage.removeItem(STORAGE_KEY);state=freshState();adultUnlocked=false;introReplay=false;modal=null;route='onboarding';render();}
+  function resetProfile(){if(demoMode){resetDemoMode();return;}if(window.FINPET_STORAGE?.remove)window.FINPET_STORAGE.remove(STORAGE_KEY);else localStorage.removeItem(STORAGE_KEY);state=freshState();adultUnlocked=false;introReplay=false;modal=null;route='onboarding';render();}
 
   function renderModal() {
     if(modal.type==='purchaseConfirm'){
       const p=purchasePreview(modal.itemId);if(!p)return '';
       const effect=p.item.effect?.mood?`Настроение ${p.item.effect.mood>0?'+':''}${p.item.effect.mood}`:p.item.effect?.satiety?`Сытость +${p.item.effect.satiety}`:p.item.effect?.care?`Уход +${p.item.effect.care}`:p.delay>0?`Цель примерно на ${p.delay} нед. дальше`:'Мир питомца изменится';
-      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art">${illustration(p.item.icon,p.item.name||p.item.id)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>Баланс после</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>Влияние</span><b>${esc(effect)}</b></div></div>${p.enough?`<div class="grid2"><button class="btn primary" data-confirm-buy="${p.item.id}">Купить</button><button class="btn secondary" data-purchase-cancel>Не сейчас</button></div>`:`<div class="insufficient-actions"><p>Покупка не выполнена. Можно выбрать следующее действие без снятия денег из копилки.</p><button class="btn secondary" data-purchase-cancel>Вернуться</button><button class="btn secondary" data-modal-route="tasks">Открыть задания</button>${state.ageGroup==='15-17'?'<button class="btn secondary" data-modal-route="sidejob">Открыть подработку</button>':''}</div>`}</div></div>`;
+      const actions=p.enough?`<div class="grid2"><button class="btn primary" data-confirm-buy="${p.item.id}">Купить</button><button class="btn secondary" data-purchase-cancel>Не сейчас</button></div>`:`<div class="feedback-section shortage-feedback"><h3>Что изменилось</h3><p>Покупка не выполнена.</p></div><div class="feedback-section"><h3>Почему</h3><p>Не хватает ${fmt(p.missing)} монет. Накопления не снимаются автоматически.</p></div><div class="feedback-section"><h3>Что дальше</h3><div class="insufficient-actions"><button class="btn secondary" data-purchase-cancel>Вернуться</button><button class="btn secondary" data-modal-route="tasks">Открыть задания</button>${state.ageGroup==='15-17'?'<button class="btn secondary" data-modal-route="sidejob">Открыть подработку</button>':''}</div></div>`;
+      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art">${illustration(p.item.icon,p.item.name||p.item.id)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>Баланс после</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>Влияние</span><b>${esc(effect)}</b></div></div>${actions}</div></div>`;
     }
     if(modal.type==='withdrawalPreview'){
       const p=withdrawalPreview(modal.amount);return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="preview-illustration">${learningArtwork('savings')}</div><div class="eyebrow">До операции</div><h2>Вернуть ${fmt(p.amount)} монет?</h2><div class="confirmation-facts four"><div><span>В копилке</span><b>${fmt(p.before)} → ${fmt(p.after)}</b></div><div><span>До цели останется</span><b>${p.remaining==null?'Цель не выбрана':fmt(p.remaining)+' ●'}</b></div><div><span>Срок был</span><b>${p.beforeWeeks==null?'—':`≈ ${p.beforeWeeks} нед.`}</b></div><div><span>Срок станет</span><b>${p.afterWeeks==null?'—':`≈ ${p.afterWeeks} нед.`}</b></div></div><div class="grid2"><button class="btn primary" data-confirm-withdraw="${p.amount}">Вернуть на баланс</button><button class="btn secondary" data-withdraw-cancel>Оставить в копилке</button></div></div></div>`;
     }
     if(modal.type==='resetConfirm')return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">Подтверждение</div><h2>Удалить локальный профиль?</h2><p>Будут удалены баланс, копилка, цели, покупки, прогресс, задания и история недель на этом устройстве.</p><div class="grid2"><button class="btn danger-button" data-confirm-reset>Удалить</button><button class="btn secondary" data-close-modal>Отмена</button></div></div></div>`;
     if(modal.type==='event'){const e=C.events.find(x=>x.id===modal.id);if(!e)return '';return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">${e.categoryLabel||'Событие'}</div><h2>${e.title}</h2><p>${e.situation||e.text}</p><div class="stack">${e.choices.map((c,i)=>`<button class="choice event-choice" data-event-choice="${i}"><b>${c.text}</b>${choicePreview(c,e)}</button>`).join('')}</div></div></div>`;}
-    if(modal.type==='eventResult')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Что произошло</div><h2>${modal.title||'Последствие'}</h2><div class="result-box"><p>${modal.result}</p></div>${modal.feedback?feedbackHtml(modal.feedback):''}<button class="btn primary block" style="margin-top:12px" data-close-modal>Продолжить</button></div></div>`;
+    if(modal.type==='eventResult')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${modal.title||'Последствие'}</h2><div class="feedback-section"><h3>Что изменилось</h3>${modal.feedback?feedbackHtml(modal.feedback):'<p>Решение сохранено.</p>'}</div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.result||'Это последствие выбранного решения.')}</p></div><div class="feedback-section"><h3>Что дальше</h3><button class="btn primary block" data-close-modal>Продолжить</button></div></div></div>`;
     if(modal.type==='delayedImpact'){const total=modal.charges.reduce((s,c)=>s+(c.paid||0),0);return `<div class="overlay"><div class="sheet delayed-sheet"><div class="sheet-handle"></div><div class="eyebrow">Произошло автоматически</div><h2>−${fmt(total)} монет</h2><div class="delayed-list">${modal.charges.map(c=>`<div><span>${esc(c.description)}</span><b>−${fmt(c.paid||0)}</b></div>`).join('')}</div><p class="subtle">Это последствие решения из прошлых игровых дней или недель.</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;}
-    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Большая цель</div><h2>${esc(modal.title)}</h2><p>${esc(modal.message)}</p><div class="unlock-visual">${modal.icon||'✦'}</div><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div>`;
-    if(modal.type==='financialFeedback')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Цена решения</div><h2>${modal.title}</h2>${feedbackHtml(modal.feedback)}<button class="btn primary block" style="margin-top:12px" data-close-modal>Понятно</button></div></div>`;
+    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Большая цель</div><h2>${esc(modal.title)}</h2><div class="unlock-visual">${modal.icon||'✦'}</div><div class="feedback-section"><h3>Что изменилось</h3><div class="feedback-change-list">${(modal.changes||[]).map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div></div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.reason||modal.message)}</p></div><div class="feedback-section"><h3>Что дальше</h3><p>${esc(modal.message)}</p><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div></div>`;
+    if(modal.type==='financialFeedback')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${esc(modal.title)}</h2>${financialFeedbackHtml(modal)}</div></div>`;
     if(modal.type==='saveFirst'){const n=Math.min(modal.amount||200,state.wallet.balance);return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Перед неделей</div><h2>${state.ageGroup==='7-11'?'Сразу положить в копилку?':'Отложить сначала?'}</h2><p>Это не обязательно. Можно оставить деньги свободными и решить позже.</p><div class="grid2"><button class="btn good" data-save="${n}">Отложить ${fmt(n)}</button><button class="btn secondary" data-close-modal>Не сейчас</button></div></div></div>`;}
     if(modal.type==='workComplete')return `<div class="overlay"><div class="sheet work-complete-sheet"><div class="sheet-handle"></div><div class="eyebrow">Смена завершена</div><h2>+${fmt(modal.reward)} монет</h2><div class="feedback-grid"><div><span>Энергия</span><b>−${fmt(modal.energyCost)}</b></div><div><span>Баланс</span><b>${fmt(modal.balance)} ●</b></div><div><span>Осталось энергии</span><b>${Math.round(modal.energy)}⚡</b></div></div><p class="subtle">Деньги уже в обычном кошельке. Дальше решаешь сам: потратить, оставить или отложить.</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;
     if(modal.type==='dayConfirm')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>Завершить день?</h2><p>Можно ничего не покупать. Потребности немного изменятся просто потому, что игровой день прошёл.</p><div class="grid2"><button class="btn primary" data-confirm-day>Завершить</button><button class="btn secondary" data-close-modal>Вернуться</button></div></div></div>`;
@@ -1015,6 +1172,11 @@
   }
 
   function bindCommon() {
+    document.querySelectorAll('[data-demo-start]').forEach(b=>b.onclick=startDemoMode);
+    document.querySelectorAll('[data-demo-reset]').forEach(b=>b.onclick=resetDemoMode);
+    document.querySelectorAll('[data-demo-exit]').forEach(b=>b.onclick=exitDemoMode);
+    document.querySelectorAll('[data-demo-complete]').forEach(b=>b.onclick=demoCompletePeriod);
+    document.querySelectorAll('[data-feedback-route]').forEach(b=>b.onclick=()=>{const target=b.dataset.feedbackRoute;modal=null;route=target||'home';render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{route=b.dataset.route;taskResult=null;if(route==='sidejob')track('side_job_opened',{source:'navigation'});if(route!=='weekStart')editingPlan=false;render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{route=route==='help'?(helpReturnRoute||'profile'):['adult','adultGate'].includes(route)?'profile':(route==='shop'||route==='task'||route==='pet'||route==='sidejob')?'home':route==='savings'?'budget':'profile';taskResult=null;render();});
     document.querySelectorAll('[data-help]').forEach(b=>b.onclick=()=>{helpReturnRoute=route;state.helpLastTopic=null;route='help';track('help_opened',{source:helpReturnRoute});save();render();window.scrollTo(0,0);});
@@ -1120,7 +1282,7 @@
     if(!state.onboardingDone){renderOnboarding();syncMotionPreference();return;}
     if(state.ageMigrationPending){renderAgeMigration();syncMotionPreference();return;}
     recalculateWorldProgress();ensureStoryChainsFor(state,true);
-    app.innerHTML=`<main class="app-shell ${ageModeClass()}">${renderScreen()}${renderNav()}</main>${modal?renderModal():''}`;
+    app.innerHTML=`<main class="app-shell ${ageModeClass()} ${demoMode?'demo-mode':''}">${renderScreen()}${renderNav()}</main>${modal?renderModal():''}`;
     bindCommon();syncMotionPreference();
   }
 
@@ -1166,9 +1328,9 @@
 
   function budgetScreen(){
     state.stats.budgetViews++;recalculateHealth();checkAchievements();save();const reserve=needsReserve(),free=freeMoney(),h=healthText(),plan=planForWeek(),actual=actualsForWeek();
-    if(state.difficultyMode==='easy') return `<section class="screen">${topbar('Мои монеты')}<div class="junior-budget"><div class="junior-money-card"><span>Сейчас</span><b>${fmt(state.wallet.balance)} ●</b></div><div class="junior-money-card"><span>Коплю</span><b>${fmt(state.wallet.savings)} ●</b></div><div class="junior-money-card"><span>Нужно оставить</span><b>≈ ${fmt(reserve)} ●</b></div><div class="junior-money-card"><span>До следующей недели</span><b>${state.wallet.nextIncomeIn} дн.</b></div></div><div class="card junior-health"><b>${h[0]}</b><p>${h[1]}</p></div><div class="section-title"><h2>Как разложили</h2><button data-edit-plan>Поменять</button></div>${plan?`<div class="card simple-buckets"><span>Нужно <b>${fmt(plan.necessary)}</b></span><span>Хочу <b>${fmt(plan.wants)}</b></span><span>Коплю <b>${fmt(plan.savings)}</b></span><span>Оставлю <b>${fmt(plan.reserve)}</b></span></div>`:'<div class="need-note">Сначала разложи монеты в начале недели.</div>'}<div class="section-title"><h2>Что происходило</h2></div><div class="card history">${historyHtml()}</div></section>`;
+    if(state.difficultyMode==='easy') return `<section class="screen">${topbar('Мои монеты')}<div class="junior-budget"><div class="junior-money-card"><span>Сейчас</span><b>${fmt(state.wallet.balance)} ●</b></div><div class="junior-money-card"><span>Коплю</span><b>${fmt(state.wallet.savings)} ●</b></div><div class="junior-money-card"><span>Нужно оставить</span><b>≈ ${fmt(reserve)} ●</b></div><div class="junior-money-card"><span>До следующей недели</span><b>${state.wallet.nextIncomeIn} дн.</b></div></div><div class="card junior-health"><b>${h[0]}</b><p>${h[1]}</p></div><div class="section-title"><h2>Как разложили</h2><span class="soft-label">План подтверждён</span></div>${plan?`<div class="card simple-buckets"><span>Нужно <b>${fmt(plan.necessary)}</b></span><span>Хочу <b>${fmt(plan.wants)}</b></span><span>Коплю <b>${fmt(plan.savings)}</b></span><span>Оставлю <b>${fmt(plan.reserve)}</b></span></div>`:'<div class="need-note">Сначала разложи монеты в начале недели.</div>'}<div class="section-title"><h2>Что происходило</h2></div><div class="card history">${historyHtml()}</div></section>`;
     const obligations=(state.futureObligations||[]).filter(o=>o.dueWeek<=state.wallet.week+2).sort((a,b)=>a.dueWeek-b.dueWeek||a.dueDay-b.dueDay);
-    return `<section class="screen">${topbar('Мой бюджет')}<div class="metric-grid"><div class="metric"><div class="label">Баланс</div><div class="value">${fmt(state.wallet.balance)}</div></div><div class="metric"><div class="label">До дохода</div><div class="value">${state.wallet.nextIncomeIn} дн.</div></div><div class="metric"><div class="label">Нужно предусмотреть</div><div class="value money-orange">${fmt(reserve)}</div></div><div class="metric"><div class="label">Свободно сейчас</div><div class="value money-green">${fmt(free)}</div></div></div><div class="section-title"><h2>Состояние бюджета</h2></div><div class="card health-card"><div class="health-dot ${state.financialHealth>=62?'stable':state.financialHealth>=45?'caution':'risk'}"></div><div><h3>${h[0]}</h3><p>${h[1]}</p></div></div>${obligations.length?`<div class="section-title"><h2>Будущие списания</h2></div><div class="card obligation-list">${obligations.slice(0,5).map(o=>`<div><span>${esc(o.description)}</span><b>−${fmt(o.amount)} · нед. ${o.dueWeek}</b></div>`).join('')}</div>`:''}<div class="section-title"><h2>План → факт</h2><button data-edit-plan>Изменить</button></div>${plan?planFactHtml(plan,actual):'<div class="need-note">У этой недели ещё нет плана.</div>'}<div class="section-title"><h2>Копилка</h2><button data-savings>Открыть</button></div><div class="card"><div class="goal-card"><div class="goal-icon">${illustration('🪙')}</div><div><h3>${fmt(state.wallet.savings)} монет</h3><p>${goalView()?`Для цели «${esc(goalView().name)}» · ≈ ${weeksToGoal()} нед.`:'Можно выбрать цель позже'}</p></div></div></div><div class="section-title"><h2>История</h2></div><div class="card history">${historyHtml()}</div></section>`;
+    return `<section class="screen">${topbar('Мой бюджет')}<div class="metric-grid"><div class="metric"><div class="label">Баланс</div><div class="value">${fmt(state.wallet.balance)}</div></div><div class="metric"><div class="label">До дохода</div><div class="value">${state.wallet.nextIncomeIn} дн.</div></div><div class="metric"><div class="label">Нужно предусмотреть</div><div class="value money-orange">${fmt(reserve)}</div></div><div class="metric"><div class="label">Свободно сейчас</div><div class="value money-green">${fmt(free)}</div></div></div><div class="section-title"><h2>Состояние бюджета</h2></div><div class="card health-card"><div class="health-dot ${state.financialHealth>=62?'stable':state.financialHealth>=45?'caution':'risk'}"></div><div><h3>${h[0]}</h3><p>${h[1]}</p></div></div>${obligations.length?`<div class="section-title"><h2>Будущие списания</h2></div><div class="card obligation-list">${obligations.slice(0,5).map(o=>`<div><span>${esc(o.description)}</span><b>−${fmt(o.amount)} · нед. ${o.dueWeek}</b></div>`).join('')}</div>`:''}<div class="section-title"><h2>План → факт</h2><span class="soft-label">План подтверждён</span></div>${plan?planFactHtml(plan,actual):'<div class="need-note">У этой недели ещё нет плана.</div>'}<div class="section-title"><h2>Копилка</h2><button data-savings>Открыть</button></div><div class="card"><div class="goal-card"><div class="goal-icon">${illustration('🪙')}</div><div><h3>${fmt(state.wallet.savings)} монет</h3><p>${goalView()?`Для цели «${esc(goalView().name)}» · ≈ ${weeksToGoal()} нед.`:'Можно выбрать цель позже'}</p></div></div></div><div class="section-title"><h2>История</h2></div><div class="card history">${historyHtml()}</div></section>`;
   }
 
   function profileScreen(){
@@ -1204,7 +1366,7 @@
     const p=parentPuzzle();return `<section class="screen adult-screen parent-quiz-screen">${topbar('Для взрослых',true)}<div class="adult-illustration">${learningArtwork('adult')}</div><h2>Небольшая проверка</h2><p>Чтобы открыть раздел, выберите ответ: <b>${p.a} + ${p.b} = ?</b></p><div class="parent-quiz" aria-label="Проверка для взрослого">${p.options.map(x=>`<button class="parent-answer" data-parent-puzzle="${x}">${x}</button>`).join('')}</div>${parentGateMessage?`<p class="parent-gate-message" role="status">${parentGateMessage}</p>`:''}<p class="subtle">Это защита от случайного входа, а не пароль.</p></section>`;
   }
   function adultScreen(){
-    const g=goalView(),topics=completedLearningTopics(),world=worldStageData();return `<section class="screen adult-screen">${topbar('Для взрослых',true)}<div class="adult-summary"><div>${learningArtwork('adult')}</div><div><div class="eyebrow">Цель приложения</div><h2>Учиться принимать финансовые решения без оценки ребёнка</h2><p>Питомец, недели и цели показывают последствия выбора в безопасной игровой среде.</p></div></div><div class="adult-metrics"><div><span>Режим игры</span><b>${difficultyLabel()}</b></div><div><span>Завершено недель</span><b>${state.weekHistory.length}</b></div><div><span>Выполнено заданий</span><b>${state.completedTasks.length}</b></div><div><span>Мир</span><b>Этап ${world.id}</b></div></div><div class="section-title"><h2>Текущая цель</h2></div><div class="adult-goal"><b>${g?esc(g.name):'Пока не выбрана'}</b><span>${g?`${fmt(state.wallet.savings)} из ${fmt(goalTarget())} монет`:'Ребёнок сможет выбрать её в разделе целей.'}</span></div><div class="section-title"><h2>Пройденные темы</h2></div>${topics.length?`<div class="topic-chips">${topics.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'<div class="empty-state small-empty"><div><b>Темы ещё не завершены</b><span>Они появятся после выполнения игровых заданий.</span></div></div>'}<div class="section-title"><h2>Чему учат механики</h2></div><div class="adult-mechanics">${(C.adultMechanics||[]).map(([n,d])=>`<details><summary>${esc(n)}</summary><p>${esc(d)}</p></details>`).join('')}</div><div class="adult-reset"><button class="linkbtn danger" data-reset>Удалить локальный профиль</button><p>Будут удалены данные только на этом устройстве. Потребуется отдельное подтверждение.</p></div></section>`;
+    const g=goalView(),topics=completedLearningTopics(),world=worldStageData();return `<section class="screen adult-screen">${topbar('Для взрослых',true)}<div class="adult-summary"><div>${learningArtwork('adult')}</div><div><div class="eyebrow">Цель приложения</div><h2>Учиться принимать финансовые решения без оценки ребёнка</h2><p>Питомец, недели и цели показывают последствия выбора в безопасной игровой среде.</p></div></div><div class="adult-metrics"><div><span>Режим игры</span><b>${difficultyLabel()}</b></div><div><span>Завершено недель</span><b>${state.weekHistory.length}</b></div><div><span>Выполнено заданий</span><b>${state.completedTasks.length}</b></div><div><span>Мир</span><b>Этап ${world.id}</b></div></div><div class="section-title"><h2>Текущая цель</h2></div><div class="adult-goal"><b>${g?esc(g.name):'Пока не выбрана'}</b><span>${g?`${fmt(state.wallet.savings)} из ${fmt(goalTarget())} монет`:'Ребёнок сможет выбрать её в разделе целей.'}</span></div><div class="section-title"><h2>Пройденные темы</h2></div>${topics.length?`<div class="topic-chips">${topics.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'<div class="empty-state small-empty"><div><b>Темы ещё не завершены</b><span>Они появятся после выполнения игровых заданий.</span></div></div>'}<div class="section-title"><h2>Чему учат механики</h2></div><div class="adult-mechanics">${(C.adultMechanics||[]).map(([n,d])=>`<details><summary>${esc(n)}</summary><p>${esc(d)}</p></details>`).join('')}</div>${demoAdultControls()}<div class="adult-reset"><button class="linkbtn danger" data-reset>${demoMode?'Сбросить демонстрацию':'Удалить локальный профиль'}</button><p>Будут удалены данные только на этом устройстве. Потребуется отдельное подтверждение.</p></div></section>`;
   }
 
   if(document?.addEventListener&&!window.__finpetV6Events){
@@ -1229,7 +1391,7 @@
   };
 
   window.FINPET_DEV = {
-    freshState, migrateState, actualsForWeek, weeksToGoal, healthText, version:6,
+    freshState, migrateState, actualsForWeek, weeksToGoal, healthText, calculatePeriodDevelopment, version:6,
     getState:()=>JSON.parse(JSON.stringify(state)),
     getModal:()=>modal?JSON.parse(JSON.stringify(modal)):null,
     setRoute:r=>{route=r;render();return app.innerHTML;},
@@ -1246,6 +1408,9 @@
     adult:{isUnlocked:()=>adultUnlocked,completeHold:completeAdultHold,createPuzzle:createParentPuzzle,choosePuzzle:chooseParentPuzzle,lock:lockAdultGate,getPuzzle:()=>JSON.parse(JSON.stringify(parentPuzzle()))},
     difficulty:{label:difficultyLabel,ages:modeAges,set:setDifficulty},
     motion:{enabled:motionEnabled,sync:syncMotionPreference},
+    planning:{confirm:confirmWeekPlan,initial:()=>state.initialWeekPlan?JSON.parse(JSON.stringify(state.initialWeekPlan)):null},
+    demo:{start:startDemoMode,reset:resetDemoMode,exit:exitDemoMode,completePeriod:demoCompletePeriod,isActive:()=>demoMode},
+    feedback:{build:buildFinancialFeedback},
     actions:{buyItem,saveAmount,completeWeek,startNextWeek,advanceDay,selectGoal}
   };
   if (!window.__FINPET_ANDROID__ && 'serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(reg=>reg.update()).catch(() => {});
