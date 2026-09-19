@@ -46,12 +46,16 @@ assert(bad.score>=0,'bad period must not erase progress');
 // Demo uses isolated state, supports five fast periods, and period results drive development.
 r=boot(base());dev=r.dev;const mainBefore=dev.getState();
 assert(dev.demo.start()&&dev.demo.isActive(),'demo did not start');
+const periods=dev.demo.periods();
+assert(periods.length===5&&new Set(periods.map(x=>x.title)).size===5,'demo periods must be five distinct scenarios');
+assert(periods[2].id==='shortage'&&periods[4].id==='growth','demo period scenarios are not staged');
 let guide=dev.demo.guide();
-assert(guide.current.id==='plan'&&guide.completed===0,'demo guide must begin with budget planning');
+assert(guide.period.id==='budget'&&guide.current.id==='plan'&&guide.completed===0,'demo guide must begin with the budget scenario');
 for(let week=1;week<=5;week++){
   const confirmed=dev.planning.confirm({necessary:400,wants:100,savings:200,reserve:300});
   assert(confirmed.ok,'demo plan confirmation failed on week '+week);
   if(week===1){guide=dev.demo.guide();assert(guide.current.id==='goal','demo guide did not advance after planning');dev.actions.selectGoal('home');}
+  if(week===3){guide=dev.demo.guide();assert(guide.period.id==='shortage'&&guide.current.id==='shortage','third period must guide to an insufficient purchase');dev.confirmations.openPurchase('special_console');assert(dev.demo.guide().current.id==='task','insufficient purchase did not advance demo guidance');dev.confirmations.cancel();}
   for(let i=0;i<8;i++)dev.actions.buyItem('food_basic');
   dev.actions.buyItem('care_wash');
   dev.actions.buyItem('food_treat');
@@ -64,6 +68,7 @@ for(let week=1;week<=5;week++){
 s=dev.getState();
 assert(s.weekHistory.length===5,'demo did not reproduce five periods');
 assert(s.pet.development>=20,'series of balanced periods did not change pet stage range');
+assert(dev.actions.startNextWeek()===false&&dev.getState().wallet.week===5,'demo must not continue to a sixth period');
 assert(dev.demo.reset(),'demo reset failed');
 s=dev.getState();assert(s.wallet.week===1&&s.weekHistory.length===0&&s.wallet.balance===1000,'demo reset is not deterministic');
 assert(dev.demo.exit()&&!dev.demo.isActive(),'demo did not exit');
@@ -82,10 +87,11 @@ assert(r.app.innerHTML.includes('Покупка не выполнена')&&r.app
 // Direct clicks no longer grow development outside period settlement.
 const source=fs.readFileSync(ROOT+'/app.js','utf8');
 const css=fs.readFileSync(ROOT+'/styles.css','utf8');
-assert(source.includes("['demo','Демо'")&&source.includes('Для знакомства'),'demo is missing from the mode-selection screen');
+assert(source.includes("['demo','Демо'")&&source.includes('5 коротких сценариев'),'demo is missing from the mode-selection screen');
+assert(!source.includes('Для знакомства'),'the old acquaintance pill must be removed');
 assert(!source.includes('demoAdultControls'),'demo entry must not live in the adult section');
-assert(source.includes('Что уже показано')&&source.includes('demoGuideState'),'explicit demo guidance is missing');
-assert(css.includes('--primary:#b76138')&&css.includes('V12 ORANGE PRODUCT ACCENT'),'orange/terracotta product accent is missing');
+assert(source.includes('DEMO_PERIODS')&&source.includes('Завершить демо')&&source.includes('demoPeriodIntro'),'directed demo guidance or explicit finish is missing');
+assert(css.includes('--primary:#b76138')&&css.includes('V13 DIRECTED DEMO'),'orange/terracotta directed-demo styling is missing');
 assert(!source.includes('adjustPet({ development: 4'),'task still directly grows development');
 assert(!source.includes('adjustPet({development:10'),'goal still directly grows development');
 assert(source.includes('delete itemEffect.development')&&source.includes('delete petEff.development'),'purchase/event development bypass remains');

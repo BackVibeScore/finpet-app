@@ -749,7 +749,7 @@
   function weekSummaryScreen() {
     const s=state.weekSummary;if(!s){route='home';return homeScreen();}
     const junior=state.ageGroup==='7-11';
-    return `<section class="screen week-screen summary-screen">${demoStrip()}<div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>Доп. доход</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?'':`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card development-result"><div class="development-result-head"><div><div class="eyebrow">Почему изменился питомец</div><h3>${petStage()}</h3></div><b>${s.development?.delta>0?'+':''}${s.development?.delta||0}</b></div><p>${esc(s.development?.reason||'Развитие рассчитывается по итогам всего игрового периода.')}</p></div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div>${demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)?'<button class="btn primary block" data-demo-exit>Завершить демонстрацию</button>':'<button class="btn primary block" data-next-week>Перейти к новой неделе</button>'}</section>`;
+    return `<section class="screen week-screen summary-screen">${demoStrip()}<div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>Доп. доход</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?'':`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card development-result"><div class="development-result-head"><div><div class="eyebrow">Почему изменился питомец</div><h3>${petStage()}</h3></div><b>${s.development?.delta>0?'+':''}${s.development?.delta||0}</b></div><p>${esc(s.development?.reason||'Развитие рассчитывается по итогам всего игрового периода.')}</p></div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div>${demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)?'<div class="demo-final-actions"><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти демо заново</button></div>':'<button class="btn primary block" data-next-week>Перейти к новой неделе</button>'}</section>`;
   }
 
   function choicePreview(c,e) {
@@ -924,15 +924,12 @@
   }
 
   function startNextWeek() {
+    if(demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)){modal={type:'demoFinished'};render();return false;}
     const beforeBalance=state.wallet.balance;
-    state.weekSummary=null;state.wallet.week++;state.wallet.day=1;state.wallet.nextIncomeIn=7;state.wallet.needsSpent=0;state.wallet.balance+=state.wallet.weeklyIncome;tx('income',state.wallet.weeklyIncome,'Доход',`Доход за неделю ${state.wallet.week}`,'weekly_income');state.weekOpeningCharges=[];state.dayActions={count:0,necessary:0,optional:0,income:0,sideJob:false};processDueObligations({showModal:false,opening:true});track('week_started',{week:state.wallet.week,income:state.wallet.weeklyIncome,automaticCharges:state.weekOpeningCharges.reduce((a,x)=>a+x.amount,0),available:state.wallet.balance});state.weekPlan=null;state.initialWeekPlan=null;state.weekSnapshot=null;state.weekNeedsPlanning=true;state.eventResolved=false;state.currentEventId=selectEventId();state.petWish=null;if(state.activityLimits.week!==state.wallet.week)state.activityLimits={week:state.wallet.week,sideJobs:0};state.workState={week:state.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};state.workSession=null;recalculateWorldProgress();recalculateHealth();save();route='weekStart';
-    modal=buildFinancialFeedback(
-      `Новый период: неделя ${state.wallet.week}`,
-      [{label:'Доход',value:`+${fmt(state.wallet.weeklyIncome)} ●`},{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}],
-      state.weekOpeningCharges.length?'Доход начислен, а обязательства из прошлых решений уже учтены в доступном балансе.':'Периодический игровой доход начислен. Теперь его нужно распределить до начала недели.',
-      [{label:'Распределить бюджет',route:'weekStart'}]
-    );
-    render();window.scrollTo(0,0);
+    state.weekSummary=null;state.wallet.week++;state.wallet.day=1;state.wallet.nextIncomeIn=7;state.wallet.needsSpent=0;state.wallet.balance+=state.wallet.weeklyIncome;tx('income',state.wallet.weeklyIncome,'Доход',`Доход за неделю ${state.wallet.week}`,'weekly_income');state.weekOpeningCharges=[];state.dayActions={count:0,necessary:0,optional:0,income:0,sideJob:false};processDueObligations({showModal:false,opening:true});track('week_started',{week:state.wallet.week,income:state.wallet.weeklyIncome,automaticCharges:state.weekOpeningCharges.reduce((a,x)=>a+x.amount,0),available:state.wallet.balance});state.weekPlan=null;state.initialWeekPlan=null;state.weekSnapshot=null;state.weekNeedsPlanning=true;state.eventResolved=false;state.currentEventId=selectEventId();state.petWish=null;if(state.activityLimits.week!==state.wallet.week)state.activityLimits={week:state.wallet.week,sideJobs:0};state.workState={week:state.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};state.workSession=null;recalculateWorldProgress();recalculateHealth();route='weekStart';
+    if(demoMode){prepareDemoPeriod();modal={type:'demoPeriodIntro',period:state.wallet.week};}
+    else{modal=buildFinancialFeedback(`Новый период: неделя ${state.wallet.week}`,[{label:'Доход',value:`+${fmt(state.wallet.weeklyIncome)} ●`},{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}],state.weekOpeningCharges.length?'Доход начислен, а обязательства из прошлых решений уже учтены в доступном балансе.':'Периодический игровой доход начислен. Теперь его нужно распределить до начала недели.',[{label:'Распределить бюджет',route:'weekStart'}]);}
+    save();render();window.scrollTo(0,0);return true;
   }
   function freshState() {
     return {
@@ -1014,6 +1011,40 @@
     return migrated;
   }
 
+  const DEMO_PERIODS = [
+    {id:'budget',title:'Бюджет на неделю',lead:'Покажем базовый цикл: план, цель, обязательные расходы и накопления.',steps:[
+      {id:'plan',label:'Распределите бюджет',route:'weekStart',hint:'Разложите монеты по четырём категориям и нажмите «Начать неделю».'},
+      {id:'goal',label:'Выберите финансовую цель',route:'goals',hint:'Откройте цели и выберите, на что хотите копить.'},
+      {id:'necessary',label:'Сделайте обязательную трату',route:'home',hint:'Покормите питомца или выполните уход. Это покажет разницу между «нужно» и «хочу».'},
+      {id:'savings',label:'Отложите деньги',route:'savings',hint:'Положите часть монет в копилку и посмотрите, как изменится срок до цели.'},
+      {id:'finish',label:'Посмотрите итог периода',route:'home',hint:'Теперь можно сравнить план и факт и увидеть, почему изменился питомец.'}
+    ]},
+    {id:'needs-wants',title:'Хочу или нужно?',lead:'Сравним обязательную и необязательную трату и их влияние на бюджет.',steps:[
+      {id:'plan',label:'Составьте новый план',route:'weekStart',hint:'Во втором периоде снова распределите доход, но оставьте место и для желаний.'},
+      {id:'necessary',label:'Сначала закройте важное',route:'home',hint:'Сделайте обязательную трату — например, покормите питомца.'},
+      {id:'optional',label:'Теперь выберите желание',route:'home',hint:'Поиграйте с питомцем или купите необязательную вещь. Сравните результат с обязательной тратой.'},
+      {id:'finish',label:'Сравните решения',route:'home',hint:'Завершите период и посмотрите, как две разные траты отразились на плане и факте.'}
+    ]},
+    {id:'shortage',title:'Когда денег не хватает',lead:'После неожиданного расхода денег мало. Покажем отказ покупки и способ восстановить баланс.',steps:[
+      {id:'plan',label:'Спланируйте ограниченный бюджет',route:'weekStart',hint:'После неожиданного расхода доступно меньше обычного. Распределите оставшиеся монеты.'},
+      {id:'shortage',label:'Попробуйте дорогую покупку',route:'shop',hint:'Нажмите кнопку ниже. Мы специально покажем покупку, на которую сейчас не хватает денег.'},
+      {id:'task',label:'Получите дополнительный доход',route:'tasks',hint:'Выполните финансовое задание и получите игровую награду.'},
+      {id:'finish',label:'Посмотрите, что получилось',route:'home',hint:'Завершите период: приложение покажет, как ограниченный бюджет повлиял на результат.'}
+    ]},
+    {id:'plan-fact',title:'План и факт',lead:'Покажем, почему первоначальный план нельзя переписать задним числом.',steps:[
+      {id:'plan',label:'Зафиксируйте план',route:'weekStart',hint:'Распределите доход. После подтверждения исходный план останется неизменным.'},
+      {id:'optional',label:'Сделайте незапланированное желание',route:'home',hint:'Потратьте немного на желание. Фактические траты начнут отличаться от плана.'},
+      {id:'savings',label:'Добавьте накопление',route:'savings',hint:'Отложите часть денег — это тоже попадёт в факт периода.'},
+      {id:'necessary',label:'Закройте обязательную трату',route:'home',hint:'Теперь сделайте обязательную трату и завершите финансовую картину недели.'},
+      {id:'finish',label:'Откройте сравнение план → факт',route:'home',hint:'Завершите период. Исходный план останется тем же, а рядом появится фактический результат.'}
+    ]},
+    {id:'growth',title:'Как растёт питомец',lead:'Финальный период: покажем, как серия решений за несколько недель влияет на развитие питомца.',steps:[
+      {id:'plan',label:'Составьте финальный план',route:'weekStart',hint:'Ещё раз распределите доход. Это последний период демонстрации.'},
+      {id:'necessary',label:'Позаботьтесь о важном',route:'home',hint:'Сделайте обязательную трату — она учитывается в итоговой оценке периода.'},
+      {id:'savings',label:'Продолжите накопления',route:'savings',hint:'Отложите деньги. Регулярность накоплений влияет на итоговый рост.'},
+      {id:'finish',label:'Посмотрите итог развития',route:'home',hint:'Завершите пятый период. После результата демо закончится и продолжить на шестую неделю будет нельзя.'}
+    ]}
+  ];
   function freshDemoState(petOverride = null) {
     const d=freshState();
     d.onboardingDone=true;d.onboardingIntroCompleted=true;d.onboardingStep=(C.introSlides||[]).length+2;
@@ -1021,8 +1052,28 @@
     d.pet={...d.pet,...(petOverride||{}),development:8};
     d.wallet={...d.wallet,balance:1000,savings:0,weeklyIncome:1000,week:1,day:1,nextIncomeIn:7};
     d.activeGoal=null;d.currentEventId=(C.events.find(e=>(e.age||[]).includes('7-11'))||C.events[0]||{}).id||null;
-    d.demoSession={targetPeriods:5,startedAt:Date.now(),starterPet:{...d.pet}};
+    d.demoSession={targetPeriods:5,startedAt:Date.now(),starterPet:{...d.pet},shortageWeeks:[],periodIntroSeen:[]};
     return d;
+  }
+  function demoPeriodConfig(week=state.wallet.week) {
+    return DEMO_PERIODS[Math.max(0,Math.min(DEMO_PERIODS.length-1,Number(week||1)-1))];
+  }
+  function prepareDemoPeriod() {
+    if(!demoMode) return;
+    state.demoSession=state.demoSession||{targetPeriods:5,shortageWeeks:[],periodIntroSeen:[]};
+    state.demoSession.shortageWeeks=state.demoSession.shortageWeeks||[];
+    state.demoSession.periodIntroSeen=state.demoSession.periodIntroSeen||[];
+    if(state.wallet.week===3 && !state.demoSession.shortagePrepared){
+      const targetBalance=520;
+      if(state.wallet.balance>targetBalance){
+        const amount=state.wallet.balance-targetBalance;
+        state.wallet.balance=targetBalance;
+        tx('expense',-amount,'Необходимые расходы','Неожиданный обязательный расход','demo_setup');
+        state.weekOpeningCharges=state.weekOpeningCharges||[];
+        state.weekOpeningCharges.push({description:'Неожиданный обязательный расход',amount});
+      }
+      state.demoSession.shortagePrepared=true;
+    }
   }
   function startDemoMode(options = {}) {
     const selectedPet={...(options.pet||state.pet||{})};
@@ -1036,13 +1087,13 @@
       }
       save();
     }
-    demoMode=true;state=freshDemoState(selectedPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_started',{targetPeriods:5,source:fromOnboarding?'mode_select':'developer'});save();render();window.scrollTo(0,0);return true;
+    demoMode=true;state=freshDemoState(selectedPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal={type:'demoPeriodIntro',period:1};taskResult=null;editingPlan=false;prepareDemoPeriod();save();route='weekStart';track('demo_started',{targetPeriods:5,source:fromOnboarding?'mode_select':'developer'});save();render();window.scrollTo(0,0);return true;
   }
   function resetDemoMode() {
     if(!demoMode) return startDemoMode();
     const starterPet={...(state.demoSession?.starterPet||state.pet||{})};
     if(window.FINPET_STORAGE?.remove) window.FINPET_STORAGE.remove(DEMO_STORAGE_KEY); else localStorage.removeItem(DEMO_STORAGE_KEY);
-    state=freshDemoState(starterPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal=null;taskResult=null;editingPlan=false;save();route='weekStart';track('demo_reset',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
+    state=freshDemoState(starterPet);tx('income',1000,'Доход','Стартовый демонстрационный бюджет','onboarding');adultUnlocked=false;modal={type:'demoPeriodIntro',period:1};taskResult=null;editingPlan=false;prepareDemoPeriod();save();route='weekStart';track('demo_reset',{targetPeriods:5});save();render();window.scrollTo(0,0);return true;
   }
   function exitDemoMode() {
     if(!demoMode) return false;
@@ -1050,35 +1101,47 @@
   }
   function demoCompletePeriod() {
     if(!demoMode) return false;
-    if(state.weekSummary) return true;
+    if(state.weekSummary){
+      if(state.wallet.week>=Number(state.demoSession?.targetPeriods||5)){modal={type:'demoFinished'};render();}
+      return true;
+    }
     if(!planForWeek()){toast('Сначала подтвердите план периода');return false;}
-    completeWeek();return true;
+    completeWeek();
+    if(state.wallet.week>=Number(state.demoSession?.targetPeriods||5)){modal={type:'demoFinished'};render();}
+    return true;
+  }
+  function demoStepDone(step) {
+    const week=state.wallet.week,actual=actualsForWeek();
+    if(step.id==='plan') return !!planForWeek();
+    if(step.id==='goal') return !!state.activeGoal||state.completedGoals.length>0;
+    if(step.id==='necessary') return actual.necessary>0;
+    if(step.id==='optional') return actual.wants>0;
+    if(step.id==='savings') return actual.savings>0;
+    if(step.id==='task') return state.transactions.some(t=>t.week===week&&t.source==='task');
+    if(step.id==='shortage') return (state.demoSession?.shortageWeeks||[]).includes(week);
+    if(step.id==='finish') return !!state.weekSummary;
+    return false;
   }
   function demoGuideState() {
-    const actual=actualsForWeek(),week=state.wallet.week;
-    const checklist=[
-      {id:'plan',label:'План бюджета',done:!!planForWeek(),route:'weekStart',hint:'Сначала распределите недельный бюджет. Так появится основа для сравнения плана и факта.'},
-      {id:'goal',label:'Финансовая цель',done:!!state.activeGoal||state.completedGoals.length>0,route:'goals',hint:'Выберите финансовую цель. После этого копилка покажет, насколько цель становится ближе.'},
-      {id:'task',label:'Финансовое задание',done:state.transactions.some(t=>t.week===week&&t.source==='task'),route:'tasks',hint:'Выполните одно задание. Оно показывает обучение в действии и даёт игровой доход.'},
-      {id:'necessary',label:'Обязательная трата',done:actual.necessary>0,route:'home',hint:'Сделайте обязательную трату — например, покормите питомца или выполните уход.'},
-      {id:'optional',label:'Необязательная трата',done:actual.wants>0,route:'shop',hint:'Теперь попробуйте необязательную покупку или игру и сравните её влияние на бюджет.'},
-      {id:'savings',label:'Накопление',done:actual.savings>0,route:'savings',hint:'Отложите часть монет в копилку. Срок до выбранной цели пересчитается автоматически.'},
-      {id:'period',label:'Итог периода',done:!!state.weekSummary,route:'home',hint:'Завершите период. Приложение сравнит план и факт и объяснит изменение питомца.'}
-    ];
-    const current=checklist.find(x=>!x.done)||checklist[checklist.length-1];
-    return {checklist,current,completed:checklist.filter(x=>x.done).length,total:checklist.length};
+    const period=demoPeriodConfig(),steps=period.steps.map(x=>({...x,done:demoStepDone(x)}));
+    const current=steps.find(x=>!x.done)||steps[steps.length-1];
+    return {period,steps,current,completed:steps.filter(x=>x.done).length,total:steps.length};
   }
   function currentDemoAction(step) {
     if(!step||step.done) return '';
-    if(step.id==='period') return '<button class="btn primary demo-next-button" data-demo-complete>Показать итог периода</button>';
-    return `<button class="btn secondary demo-next-button" data-demo-guide-route="${esc(step.route)}">Открыть нужный раздел</button>`;
+    if(step.id==='finish') return '<button class="btn primary demo-next-button" data-demo-complete>Завершить этот период</button>';
+    if(step.id==='shortage') return '<button class="btn primary demo-next-button" data-demo-shortage>Показать покупку без денег</button>';
+    if(step.id==='necessary') return '<button class="btn primary demo-next-button" data-demo-direct="feed">Покормить питомца · 40 ●</button>';
+    if(step.id==='optional') return '<button class="btn primary demo-next-button" data-demo-direct="play">Поиграть · 80 ●</button>';
+    if(step.id==='savings'&&state.wallet.balance>=100) return '<button class="btn primary demo-next-button" data-demo-save="100">Отложить 100 ●</button>';
+    const here=route===step.route;
+    return here?'<div class="demo-do-here">↓ Сделайте действие на этом экране</div>':`<button class="btn primary demo-next-button" data-demo-guide-route="${esc(step.route)}">Перейти и сделать</button>`;
   }
   function demoStrip() {
     if(!demoMode) return '';
-    const target=Number(state.demoSession?.targetPeriods||5),period=Math.min(target,Math.max(1,state.wallet.week)),guide=demoGuideState();
-    const complete=state.weekSummary&&state.wallet.week>=target;
-    const action=currentDemoAction(guide.current);
-    return `<aside class="demo-guide" aria-label="Подсказки демо-режима"><div class="demo-guide-top"><div><span class="demo-badge">DEMO</span><b>Период ${period} из ${target}</b></div><div class="demo-guide-tools"><button data-demo-reset>Сбросить</button><button data-demo-exit>Выйти</button></div></div><div class="demo-next"><span>Шаг ${Math.min(guide.completed+1,guide.total)} из ${guide.total}</span><strong>${complete?'Демонстрация пройдена':esc(guide.current.label)}</strong><p>${complete?'Пять последовательных периодов завершены. Можно выйти из демо или сбросить сценарий.':esc(guide.current.hint)}</p>${complete?'':action}</div><details class="demo-checklist" ${period===1?'open':''}><summary>Что уже показано · ${guide.completed}/${guide.total}</summary><div>${guide.checklist.map(x=>`<span class="${x.done?'done':''}"><i>${x.done?'✓':'○'}</i>${esc(x.label)}</span>`).join('')}</div></details></aside>`;
+    const target=Number(state.demoSession?.targetPeriods||5),periodNumber=Math.min(target,Math.max(1,state.wallet.week)),guide=demoGuideState();
+    const finalComplete=state.weekSummary&&state.wallet.week>=target;
+    return `<aside class="demo-director" aria-label="Сценарий демо-режима"><div class="demo-director-head"><div><span class="demo-word">DEMO</span><span>Период ${periodNumber} из ${target}</span></div><button class="demo-finish-link" data-demo-exit>Завершить демо</button></div><div class="demo-story"><span>Сценарий ${periodNumber}</span><h3>${esc(guide.period.title)}</h3><p>${esc(guide.period.lead)}</p></div><div class="demo-current"><div class="demo-current-count">Шаг ${Math.min(guide.completed+1,guide.total)} из ${guide.total}</div><strong>${finalComplete?'Демо завершено':esc(guide.current.label)}</strong><p>${finalComplete?'Пять разных сценариев пройдены. Дальше игра в демо не продолжается.':esc(guide.current.hint)}</p>${finalComplete?'<button class="btn primary demo-next-button" data-demo-exit>Завершить демо</button>':currentDemoAction(guide.current)}</div><div class="demo-progress" aria-label="Прогресс сценария">${guide.steps.map(x=>`<i class="${x.done?'done':x.id===guide.current.id?'current':''}" title="${esc(x.label)}"></i>`).join('')}</div><button class="demo-reset-link" data-demo-reset>Начать демо заново</button></aside>`;
   }
 
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
@@ -1161,7 +1224,7 @@
   function purchasePreview(id) {
     const item=C.items.find(x=>x.id===id);if(!item)return null;const enough=state.wallet.balance>=item.price,after=state.wallet.balance-item.price,delay=item.need?0:purchaseGoalDelay(item.price);return {item,enough,after,missing:Math.max(0,-after),delay,category:item.need?'Нужно':'Желание'};
   }
-  function openPurchaseConfirmation(id){const p=purchasePreview(id);if(!p)return;modal={type:'purchaseConfirm',itemId:id};track('purchase_confirmation_opened',{itemId:id,price:p.item.price,enough:p.enough});save();render();}
+  function openPurchaseConfirmation(id){const p=purchasePreview(id);if(!p)return;if(demoMode&&!p.enough){state.demoSession=state.demoSession||{};state.demoSession.shortageWeeks=state.demoSession.shortageWeeks||[];if(!state.demoSession.shortageWeeks.includes(state.wallet.week))state.demoSession.shortageWeeks.push(state.wallet.week);}modal={type:'purchaseConfirm',itemId:id};track('purchase_confirmation_opened',{itemId:id,price:p.item.price,enough:p.enough});save();render();}
   function confirmPurchase(id){const p=purchasePreview(id);if(!p?.enough)return false;track('purchase_confirmation_confirmed',{itemId:id,price:p.item.price});save();modal=null;buyItem(id);return true;}
 
   function weeksForSavedAmount(saved) {const g=activeGoal();if(!g)return null;const remain=Math.max(0,goalTarget(g)-Math.max(0,saved));if(!remain)return 0;return Math.max(1,Math.ceil(remain/Math.max(50,savingsTempo())));}
@@ -1171,6 +1234,14 @@
   function resetProfile(){if(demoMode){resetDemoMode();return;}if(window.FINPET_STORAGE?.remove)window.FINPET_STORAGE.remove(STORAGE_KEY);else localStorage.removeItem(STORAGE_KEY);state=freshState();adultUnlocked=false;introReplay=false;modal=null;route='onboarding';render();}
 
   function renderModal() {
+    if(modal.type==='demoPeriodIntro'){
+      const n=Math.max(1,Math.min(DEMO_PERIODS.length,Number(modal.period||state.wallet.week))),p=DEMO_PERIODS[n-1];
+      return `<div class="overlay"><div class="sheet demo-period-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">DEMO · период ${n} из ${DEMO_PERIODS.length}</div><h2>${esc(p.title)}</h2><p>${esc(p.lead)}</p><div class="demo-period-roadmap">${p.steps.map((s,i)=>`<div><span>${i+1}</span><b>${esc(s.label)}</b></div>`).join('')}</div><button class="btn primary block" data-close-modal>Начать период</button>${n>1?'<button class="demo-finish-link block-link" data-demo-exit>Завершить демо сейчас</button>':''}</div></div>`;
+    }
+    if(modal.type==='demoFinished'){
+      const growth=state.pet.development-8;
+      return `<div class="overlay"><div class="sheet demo-finished-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">Демонстрация завершена</div><h2>5 периодов пройдено</h2><p>Вы посмотрели планирование, обязательные и необязательные расходы, нехватку денег, план → факт, накопления и развитие питомца.</p><div class="demo-finish-metrics"><div><span>Периодов</span><b>5 / 5</b></div><div><span>Развитие питомца</span><b>${growth>=0?'+':''}${growth}</b></div></div><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти заново</button></div></div>`;
+    }
     if(modal.type==='purchaseConfirm'){
       const p=purchasePreview(modal.itemId);if(!p)return '';
       const effect=p.item.effect?.mood?`Настроение ${p.item.effect.mood>0?'+':''}${p.item.effect.mood}`:p.item.effect?.satiety?`Сытость +${p.item.effect.satiety}`:p.item.effect?.care?`Уход +${p.item.effect.care}`:p.delay>0?`Цель примерно на ${p.delay} нед. дальше`:'Мир питомца изменится';
@@ -1204,6 +1275,9 @@
     document.querySelectorAll('[data-demo-exit]').forEach(b=>b.onclick=exitDemoMode);
     document.querySelectorAll('[data-demo-complete]').forEach(b=>b.onclick=demoCompletePeriod);
     document.querySelectorAll('[data-demo-guide-route]').forEach(b=>b.onclick=()=>{route=b.dataset.demoGuideRoute||'home';render();window.scrollTo(0,0);});
+    document.querySelectorAll('[data-demo-direct]').forEach(b=>b.onclick=()=>quickAction(b.dataset.demoDirect));
+    document.querySelectorAll('[data-demo-save]').forEach(b=>b.onclick=()=>saveAmount(Number(b.dataset.demoSave)||100));
+    document.querySelectorAll('[data-demo-shortage]').forEach(b=>b.onclick=()=>{const candidate=[...C.items].sort((a,b)=>b.price-a.price).find(x=>x.price>state.wallet.balance)||C.items.find(x=>x.id==='special_console');if(candidate)openPurchaseConfirmation(candidate.id);});
     document.querySelectorAll('[data-feedback-route]').forEach(b=>b.onclick=()=>{const target=b.dataset.feedbackRoute;modal=null;route=target||'home';render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{route=b.dataset.route;taskResult=null;if(route==='sidejob')track('side_job_opened',{source:'navigation'});if(route!=='weekStart')editingPlan=false;render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{route=route==='help'?(helpReturnRoute||'profile'):['adult','adultGate'].includes(route)?'profile':(route==='shop'||route==='task'||route==='pet'||route==='sidejob')?'home':route==='savings'?'budget':'profile';taskResult=null;render();});
@@ -1310,7 +1384,8 @@
     if(!state.onboardingDone){renderOnboarding();syncMotionPreference();return;}
     if(state.ageMigrationPending){renderAgeMigration();syncMotionPreference();return;}
     recalculateWorldProgress();ensureStoryChainsFor(state,true);
-    app.innerHTML=`<main class="app-shell ${ageModeClass()} ${demoMode?'demo-mode':''}">${renderScreen()}${renderNav()}</main>${modal?renderModal():''}`;
+    const demoStepClass=demoMode?` demo-step-${demoGuideState().current.id}`:'';
+    app.innerHTML=`<main class="app-shell ${ageModeClass()} ${demoMode?'demo-mode':''}${demoStepClass}">${renderScreen()}${renderNav()}</main>${modal?renderModal():''}`;
     bindCommon();syncMotionPreference();
   }
 
@@ -1327,9 +1402,9 @@
       const modes=[
         ['easy','Лёгкий','Меньше текста, проще ситуации и больше подсказок.'],
         ['medium','Средний','Больше самостоятельных решений и сложнее финансовые ситуации.'],
-        ['demo','Демо','Быстро посмотреть основные возможности. Мы будем подсказывать следующий шаг.']
+        ['demo','Демо','5 коротких сценариев: приложение само ведёт по ключевым механикам.']
       ];
-      app.innerHTML=`<section class="onboarding difficulty-onboarding"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main age-select-main"><div><div class="eyebrow">Шаг 1 из 2</div><h1>Как будем играть?</h1><p>Выбери обычный режим или быстрый сценарий знакомства.</p></div><div class="age-grid difficulty-grid difficulty-grid-three">${modes.map(m=>`<button class="select-card mode-card mode-${m[0]} ${selected===m[0]?'active':''}" data-difficulty="${m[0]}"><div class="mode-card-title"><h3>${m[1]}</h3>${m[0]==='demo'?'<span>Для знакомства</span>':''}</div><p>${m[2]}</p></button>`).join('')}</div></div><button class="btn primary block" data-difficulty-next ${!selected?'disabled':''}>Создать питомца</button></section>`;
+      app.innerHTML=`<section class="onboarding difficulty-onboarding"><header class="onboard-header"><div class="brand">КопиХвост</div></header><div class="onboard-main age-select-main"><div><div class="eyebrow">Шаг 1 из 2</div><h1>Как будем играть?</h1><p>Выбери обычный режим или быстрый сценарий знакомства.</p></div><div class="age-grid difficulty-grid difficulty-grid-three">${modes.map(m=>`<button class="select-card mode-card mode-${m[0]} ${selected===m[0]?'active':''}" data-difficulty="${m[0]}"><h3>${m[1]}</h3><p>${m[2]}</p></button>`).join('')}</div></div><button class="btn primary block" data-difficulty-next ${!selected?'disabled':''}>Создать питомца</button></section>`;
       app.querySelectorAll('[data-difficulty]').forEach(b=>b.onclick=()=>{
         const mode=b.dataset.difficulty;
         state.onboardingModeChoice=mode;
@@ -1450,7 +1525,7 @@
     difficulty:{label:difficultyLabel,ages:modeAges,set:setDifficulty},
     motion:{enabled:motionEnabled,sync:syncMotionPreference},
     planning:{confirm:confirmWeekPlan,initial:()=>state.initialWeekPlan?JSON.parse(JSON.stringify(state.initialWeekPlan)):null},
-    demo:{start:startDemoMode,reset:resetDemoMode,exit:exitDemoMode,completePeriod:demoCompletePeriod,isActive:()=>demoMode,guide:()=>JSON.parse(JSON.stringify(demoGuideState()))},
+    demo:{start:startDemoMode,reset:resetDemoMode,exit:exitDemoMode,completePeriod:demoCompletePeriod,isActive:()=>demoMode,guide:()=>JSON.parse(JSON.stringify(demoGuideState())),periods:()=>JSON.parse(JSON.stringify(DEMO_PERIODS))},
     feedback:{build:buildFinancialFeedback},
     actions:{buyItem,saveAmount,completeWeek,startNextWeek,advanceDay,selectGoal}
   };
