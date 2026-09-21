@@ -756,3 +756,51 @@ window.FINPET_CONTENT = {
     ['Питомец и мир', 'Делают долгий прогресс видимым, не превращая приложение в банковский интерфейс.']
   ];
 })();
+
+
+/* V4: health system, richer care/food choices and social events */
+(() => {
+  const C=window.FINPET_CONTENT;
+  const replaceItem=(id,data)=>{const i=C.items.findIndex(x=>x.id===id);if(i>=0)C.items[i]={...C.items[i],...data};else C.items.push({id,...data});};
+  replaceItem('food_basic',{category:'Еда',name:'Полезная еда',price:40,need:true,effect:{satiety:30,health:5},icon:'🥣'});
+  replaceItem('food_snack',{category:'Еда',name:'Бургер',price:30,need:false,effect:{satiety:15,mood:10},icon:'🍔'});
+  replaceItem('food_treat',{category:'Еда',name:'Мороженое',price:25,need:false,effect:{satiety:8,mood:10},icon:'🍦'});
+  replaceItem('care_wash',{category:'Здоровье',name:'Гигиенические принадлежности',price:60,need:true,effect:{health:25},icon:'🫧'});
+  replaceItem('care_brush',{category:'Здоровье',name:'Подстричься',price:30,need:true,effect:{health:15},icon:'✂️'});
+  replaceItem('care_spa',{category:'Здоровье',name:'Домашний спа-день',price:150,need:false,effect:{health:20,mood:15},icon:'🛁'});
+  replaceItem('health_syrup',{category:'Здоровье',name:'Сироп от простуды',price:40,need:true,effect:{health:20},icon:'🥄',condition:'cold',cures:'cold'});
+  replaceItem('health_tablets',{category:'Здоровье',name:'Таблетки',price:30,need:true,effect:{health:15},icon:'💊',condition:'cold',cures:'cold'});
+  replaceItem('health_vaccine',{category:'Здоровье',name:'Профилактика',price:75,need:true,effect:{health:8},icon:'🩹',preventive:true});
+  replaceItem('game_cinema',{category:'Игры',name:'Поход в кино',price:60,need:false,effect:{mood:20},icon:'🎬'});
+
+  for(const e of C.events||[]){
+    e.categoryLabel=(e.categoryLabel||'').replace(/Уход/g,'Здоровье');
+    e.situation=(e.situation||'').replace(/уход за питомцем/gi,'здоровье питомца').replace(/еда и уход/gi,'еда и здоровье');
+    e.text=e.situation||e.text;
+    for(const ch of e.choices||[]){
+      if(ch.pet?.care!=null){ch.pet.health=(ch.pet.health||0)+ch.pet.care;delete ch.pet.care;}
+      if(ch.care!=null){ch.healthDelta=(ch.healthDelta||0)+ch.care;delete ch.care;}
+      ch.result=(ch.result||'').replace(/уход за питомцем/gi,'здоровье питомца').replace(/уход/gi,'здоровье');
+    }
+  }
+
+  C.events.push(
+    {id:'e41',age:['7-11','12-14','15-17'],category:'health',categoryLabel:'Здоровье',title:'Финни простудился',situation:'Здоровье снизилось. Можно купить сироп или позаботиться о питомце дома.',text:'Здоровье снизилось. Можно купить сироп или позаботиться о питомце дома.',competencyId:'health.unexpected',learningOutcome:'Учитывать неожиданную важную трату на здоровье',difficulty:1,mechanicType:'scenario',healthCondition:'cold',healthDeltaOnOpen:-12,icon:'🤧',choices:[
+      {text:'Сироп — 40',cost:40,kind:'necessary',pet:{health:20},clearHealthCondition:true,result:'Сироп стоил 40 монет. Это не было в плане, но питомцу понадобилась помощь.'},
+      {text:'Позаботиться дома',pet:{health:8},clearHealthCondition:true,result:'Монеты не потрачены. Питомцу стало немного лучше.'},
+      {text:'Отложить помощь',pet:{health:-5},result:'Монеты сохранились, но здоровье стало хуже.'}
+    ]},
+    {id:'e42',age:['7-11','12-14'],category:'friends',categoryLabel:'Друзья',title:'Подруга зовёт в кино',situation:'Подруга пригласила Финни в кино. Билет стоит 60 монет.',text:'Подруга пригласила Финни в кино. Билет стоит 60 монет.',competencyId:'social.unplanned',learningOutcome:'Учитывать неожиданное развлечение в недельном плане',difficulty:1,mechanicType:'scenario',icon:'🎬',choices:[
+      {text:'Пойти в кино — 60',cost:60,kind:'optional',pet:{mood:20},result:'Финни хорошо провёл время. На хотелки этой недели осталось меньше монет.'},
+      {text:'Сегодня не идти',pet:{mood:-2},result:'Монеты остались. В другой раз можно выбрать другое развлечение.'}
+    ]},
+    {id:'e43',age:['7-11','12-14'],category:'health',categoryLabel:'Здоровье',title:'Время профилактики',situation:'Можно потратить 75 монет на профилактическую заботу о здоровье.',text:'Можно потратить 75 монет на профилактическую заботу о здоровье.',competencyId:'health.prevention',learningOutcome:'Отличать профилактическую важную трату от развлечения',difficulty:1,mechanicType:'scenario',icon:'🩹',choices:[
+      {text:'Позаботиться о здоровье — 75',cost:75,kind:'necessary',pet:{health:8},result:'Ты заранее позаботился о здоровье питомца.'},
+      {text:'Перенести на потом',result:'Монеты остались. К этому решению можно вернуться позже.'}
+    ]}
+  );
+
+  C.friends=[{id:'masha',name:'Маша',icon:'🙂'},{id:'sasha',name:'Саша',icon:'😄'},{id:'dima',name:'Дима',icon:'😊'}];
+  const needsSlide=(C.introSlides||[]).find(x=>x.id==='needs');if(needsSlide)needsSlide.text='Еда и забота о здоровье нужны питомцу, чтобы он хорошо себя чувствовал.';
+  if(C.helpTopics&&!C.helpTopics.some(x=>x.id==='pet-health'))C.helpTopics.splice(2,0,{id:'pet-health',ages:['7-11','12-14','15-17'],title:'Здоровье питомца',text:'Здоровье показывает, насколько хорошо питомец себя чувствует. На него влияют гигиена, забота и некоторые события.',example:'Если здоровье стало низким, можно выбрать гигиену или другое подходящее действие.'});
+})();
