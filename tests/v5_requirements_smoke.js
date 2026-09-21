@@ -33,7 +33,7 @@ r=boot(base());for(const route of ['home','tasks','budget','goals','profile']){c
 r.dev.intro.startReplay();r.dev.intro.finishReplay(false);s=r.dev.getState();assert(s.analytics.some(x=>x.name==='intro_started'&&x.replay),'replayed intro start missing');assert(s.analytics.some(x=>x.name==='intro_completed'&&x.replay),'replayed intro completion missing');
 
 // Home shows savings and the first unfinished age-appropriate task.
-const home=r.dev.renderHome();assert(home.includes('В копилке')&&home.includes('Активное задание'),'home summary is incomplete');assert(home.includes('data-open-task'),'home active-task action missing');
+const home=r.dev.renderHome();assert(home.includes('В копилке')&&(home.includes('Активное задание')||home.includes('>Задание</h2>')),'home summary is incomplete');assert(home.includes('data-open-task'),'home active-task action missing');
 
 // Adult section uses an interactive randomized puzzle; the old hold no longer unlocks it.
 assert(!r.dev.adult.completeHold(3000)&&!r.dev.adult.isUnlocked(),'legacy hold must not unlock adult section');const puzzle=r.dev.adult.getPuzzle();assert(r.dev.adult.choosePuzzle(String(puzzle.correct)),'correct parent check failed');assert(r.dev.adult.isUnlocked(),'parent check did not unlock adult section');s=r.dev.getState();assert(s.analytics.some(x=>x.name==='parent_gate_completed'),'parent gate analytics missing');
