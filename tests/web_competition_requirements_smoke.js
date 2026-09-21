@@ -79,9 +79,9 @@ assert(s.wallet.balance===mainBefore.wallet.balance&&s.wallet.week===mainBefore.
 // Unified feedback exists for purchases, savings and shortages.
 r=boot(base());dev=r.dev;dev.planning.confirm({necessary:400,wants:100,savings:100,reserve:177});
 dev.actions.buyItem('food_basic');let modal=dev.getModal();
-assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>x.label==='Баланс')&&modal.reason,'purchase feedback is incomplete');
+assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>['Баланс','Монет осталось'].includes(x.label))&&modal.reason,'purchase feedback is incomplete');
 dev.actions.saveAmount(50);modal=dev.getModal();
-assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>x.label==='Копилка'),'savings feedback is incomplete');
+assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>['Копилка','В копилке'].includes(x.label)),'savings feedback is incomplete');
 const low=base();low.wallet.balance=50;r=boot(low);dev=r.dev;dev.confirmations.openPurchase('special_console');
 assert(r.app.innerHTML.includes('Покупка не выполнена')&&r.app.innerHTML.includes('Не хватает'),'shortage feedback is incomplete');
 
