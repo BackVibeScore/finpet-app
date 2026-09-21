@@ -14,7 +14,7 @@ assert(welcome.includes("document.querySelector('.splash')) mountWelcome()"),'we
 assert(css.includes('.premium-art-backdrop')&&css.includes('.premium-art-frame')&&welcome.includes('fitAllArtFrames'),'crop-safe artwork sizing missing');
 assert(css.includes('object-fit:cover')&&/blur\((?:22|24)px\)/.test(css),'blurred bleed backdrop missing');
 assert(html.includes('welcome.css?v=20260918c')&&html.includes('welcome.js?v=20260921a'),'fixed onboarding is not cache-busted');
-assert(sw.includes('finpet-v25-action-menu-food-art-20260922a'),'service worker cache was not bumped');
+assert(sw.includes('finpet-v26-consistent-action-nav-20260922b'),'service worker cache was not bumped');
 assert(html.includes('112756217'),'Yandex Metrika was lost');
 console.log('v10_premium_onboarding_smoke: OK');
 
