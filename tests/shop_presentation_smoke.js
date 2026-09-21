@@ -6,7 +6,7 @@ function boot(){const app=element(),store={finpet_mvp_state_v1:JSON.stringify(se
 function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(),d=r.dev;
 d.actions.setShopCategory('Еда');let shop=d.setRoute('shop');
-assert(shop.includes('shop-food-art food-art-0')&&shop.includes('shop-food-art food-art-1')&&shop.includes('shop-food-art food-art-2'),'food illustrations not mapped to food cards');
+assert(shop.includes('Полезная еда')&&shop.includes('Бургер')&&shop.includes('Мороженое'),'food cards missing');
 const before=d.getState();d.actions.buyItem('food_basic');let s=d.getState();
 assert(s.pet.satiety>before.pet.satiety,'food effect missing');
 assert(!s.inventory.some(x=>x.id==='food_basic'),'consumable food incorrectly stored in inventory');
@@ -14,6 +14,7 @@ assert(!s.worldPlacements.food_basic,'consumable food incorrectly placed in room
 
 d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');
 const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8'),sw=fs.readFileSync(ROOT+'/sw.js','utf8');
+assert(src.includes('food_basic:0,food_snack:1,food_treat:2')&&src.includes('shopItemIllustration(item)'),'food illustration mapping missing');
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(css.includes('V20 SHOP SEMANTICS'),'shop semantics styles missing');
