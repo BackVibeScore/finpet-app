@@ -449,8 +449,10 @@
   }
   function generatedItemArt(itemId){
     return ({
-      care_brush:'assets/item-haircut.webp',
-      health_vaccine:'assets/item-prevention.webp',
+      care_wash:'assets/item-health-hygiene.svg',
+      care_brush:'assets/item-health-grooming.svg',
+      care_spa:'assets/item-health-checkup.svg',
+      health_vaccine:'assets/item-health-prevention.svg',
       game_cinema:'assets/item-cinema.webp',
       special_bike:'assets/item-bike.webp'
     })[itemId]||null;
@@ -574,9 +576,11 @@
     const items = C.items.filter(i => i.category === cat && (!i.condition || i.condition===state.healthCondition));
     return `<section class="screen">${topbar('Магазин', true)}
       <div class="tabs">${cats.map(c => `<button class="chip ${c === cat ? 'active' : ''}" data-shop-cat="${c}">${c}</button>`).join('')}</div>
+      ${cat==='Здоровье'?'<div class="soft-note health-shop-note"><b>Здоровье питомца</b><span>Гигиена, регулярный уход, осмотр и профилактика помогают поддерживать здоровье заранее, а не только когда питомец уже заболел.</span></div>':''}
       <div class="shop-list">${items.map(item => {
         const owned = isPersistentShopItem(item) && state.inventory.some(x => x.id === item.id);
-        return `<div class="card shop-item shop-item-v2"><div class="shop-ico ${item.category==='Еда'?'food-visual':''}">${shopItemIllustration(item)}</div><div><h3>${item.name}</h3><p>${isJunior()?(item.need?'Нужно питомцу':'Для радости'):(item.need?'Базовая потребность':'Желание / улучшение мира')}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : (isJunior()?'Хочу':'Желание')}</span><div class="item-effect-text">${esc(itemEffectText(item))}</div><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
+        const subline=item.subline||(isJunior()?(item.need?'Нужно питомцу':'Для радости'):(item.need?'Базовая потребность':'Желание / улучшение мира'));
+        return `<div class="card shop-item shop-item-v2 ${item.category==='Здоровье'?'health-item-card':''}"><div class="shop-ico ${item.category==='Еда'?'food-visual':''}">${shopItemIllustration(item)}</div><div><h3>${item.name}</h3><p>${esc(subline)}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : (isJunior()?'Хочу':'Желание')}</span><div class="item-effect-text">${esc(itemEffectText(item))}</div><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
       }).join('')}</div>
     </section>`;
   }
