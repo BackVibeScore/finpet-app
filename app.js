@@ -431,6 +431,22 @@
     return `<span class="art ${n>=36?'art-extra':''}" style="--ax:${(cell%grid)*100/(grid-1)}%;--ay:${Math.floor(cell/grid)*100/(grid-1)}%" aria-hidden="true"></span>`;
   }
   function isPersistentShopItem(item){ return !!(item && C.world?.placements?.[item.id]); }
+  function ownedPersistentItems(){
+    const seen=new Set();
+    return (state.inventory||[]).slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(item=>{
+      if(!isPersistentShopItem(item)||seen.has(item.id))return false;
+      seen.add(item.id);return true;
+    });
+  }
+  function placementAreaLabel(item){
+    const area=C.world?.placements?.[item?.id]?.area||'home';
+    return area==='park'?'Парк':area==='city'?'Город':'Комната';
+  }
+  function ownedItemsCollectionHtml(){
+    const items=ownedPersistentItems();
+    if(!items.length)return '<div class="need-note owned-empty">Постоянные вещи появятся здесь после покупки: игрушки, одежда, интерьер и особые предметы.</div>';
+    return `<div class="owned-items-grid">${items.map(item=>`<button class="owned-item-card" data-owned-item="${item.id}"><span class="owned-item-art">${shopItemIllustration(item)}</span><span class="owned-item-name">${esc(item.name)}</span><small>${placementAreaLabel(item)}</small></button>`).join('')}</div>`;
+  }
   function generatedItemArt(itemId){
     return ({
       care_brush:'assets/item-haircut.webp',
@@ -1012,9 +1028,9 @@
     return `<div class="placed-items">${entries.map(([id,p])=>{const i=C.items.find(x=>x.id===id);return i?`<div class="placed-item zone-${p.zone}" title="${esc(i.name)}">${shopItemIllustration(i)}</div>`:''}).join('')}${worldDecorHtml(area)}</div>`;
   }
   function worldSceneHtml() {
-    const area = state.currentWorldArea || 'home'; const act = petActivity(); const thought = petThought();
+    const area = state.currentWorldArea || 'home'; const act = petActivity(); const thought = petThought(); const owned=ownedPersistentItems();
     const areas = (C.world?.areas || []).filter(a => state.worldProgress.areas.includes(a.id));
-    return `<div class="world-wrap"><div class="world-tabs">${areas.map(a=>`<button data-world-area="${a.id}" class="${area===a.id?'active':''}">${illustration(a.icon,a.name||a.label||a.id)} ${a.name}</button>`).join('')}</div><div class="world-scene area-${area}">${roomItemsHtml(area)}${completedGoalWorldArt(area)}${sectionWorldRewardsHtml(area)}${thought?`<div class="ambient-thought">${thought}</div>`:''}<button class="pet-stage pet-stage-button pet-motion-${act.cls}" aria-label="Открыть состояние питомца" data-route="pet">${petBubble?`<div class="pet-bubble">${petBubble}</div>`:''}${petSVG()}</button><div class="pet-activity">${esc(state.pet.name)} ${act.text}</div></div></div>`;
+    return `<div class="world-wrap"><div class="world-tabs">${areas.map(a=>`<button data-world-area="${a.id}" class="${area===a.id?'active':''}">${illustration(a.icon,a.name||a.label||a.id)} ${a.name}</button>`).join('')}</div><div class="world-scene area-${area}">${roomItemsHtml(area)}${completedGoalWorldArt(area)}${sectionWorldRewardsHtml(area)}${thought?`<div class="ambient-thought">${thought}</div>`:''}${owned.length?`<button class="world-owned-chip" data-route="pet">Мои вещи <b>${owned.length}</b></button>`:''}<button class="pet-stage pet-stage-button pet-motion-${act.cls}" aria-label="Открыть состояние питомца" data-route="pet">${petBubble?`<div class="pet-bubble">${petBubble}</div>`:''}${petSVG()}</button><div class="pet-activity">${esc(state.pet.name)} ${act.text}</div></div></div>`;
   }
   function worldProgressCard() {
     const s = worldStageData(); const next = nextWorldStageData();
@@ -1151,14 +1167,14 @@
       if(delay>0)changes.push({label:isJunior()?'До покупки':'До цели',value:`примерно +${delay} нед.`});
       const planProgress=juniorPlanProgress(item.need?'necessary':'wants'); if(planProgress)changes.push({label:planProgress.label,value:planProgress.value});
       const purchaseActions=persistent
-        ? [{label:placement?.area==='park'?'Посмотреть в парке':placement?.area==='city'?'Посмотреть в городе':'Посмотреть в комнате',route:'home'},{label:'Продолжить покупки',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
+        ? [{label:'Посмотреть мою вещь',route:'home'},{label:'Продолжить покупки',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
         : item.category==='Еда'
           ? [{label:'Посмотреть состояние',route:'pet'},{label:'Выбрать ещё',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
           : [{label:'Продолжить покупки',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}];
       modal=buildFinancialFeedback(
         `Куплено: ${item.name}`,
         changes,
-        isJunior()?purchaseUseText(item):(item.need?'Покупка применена. Она поддерживает состояние питомца и учитывается в необходимых расходах.':'Покупка применена и уменьшила сумму для других решений.'),
+        persistent?`Теперь это твоё. ${purchaseUseText(item)} Нажми «Посмотреть мою вещь», чтобы увидеть её у питомца.`:isJunior()?purchaseUseText(item):(item.need?'Покупка применена. Она поддерживает состояние питомца и учитывается в необходимых расходах.':'Покупка применена и уменьшила сумму для других решений.'),
         purchaseActions
       );
       track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
@@ -1364,6 +1380,10 @@
     if(!C.accessories.some(a=>a.id===migrated.pet.accessory)) migrated.pet.accessory='none';
     if(!['7-11','12-14','15-17'].includes(migrated.ageGroup)&&migrated.onboardingDone){migrated.ageGroup='7-11';migrated.ageMigrationPending=true;}
     if(migrated.workState.week!==migrated.wallet.week)migrated.workState={week:migrated.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};
+    for(const entry of migrated.inventory||[]){
+      const p=C.world?.placements?.[entry.id];
+      if(p&&!migrated.worldPlacements[entry.id])migrated.worldPlacements[entry.id]={...p,placed:true};
+    }
     if(!migrated.worldProgress.areas?.includes(migrated.currentWorldArea))migrated.currentWorldArea='home';
     if(!migrated.currentEventId&&migrated.difficultyMode){const pool=eventPoolFor(migrated);migrated.currentEventId=pool.length?pool[(migrated.wallet.week*17+migrated.wallet.day*7)%pool.length].id:(C.events[0]?.id||null);}
     if (window.FINPET_STORAGE?.saveState) window.FINPET_STORAGE.saveState(storageKey,migrated);
@@ -1676,7 +1696,8 @@
     document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>saveAmount(Number(b.dataset.save)));document.querySelectorAll('[data-save-custom]').forEach(b=>b.onclick=()=>{const n=Number(document.querySelector('#saveAmount')?.value||0);if(n>0)saveAmount(n);});document.querySelectorAll('[data-withdraw]').forEach(b=>b.onclick=()=>openWithdrawalPreview(Number(b.dataset.withdraw)));document.querySelectorAll('[data-confirm-withdraw]').forEach(b=>b.onclick=()=>confirmWithdrawal(Number(b.dataset.confirmWithdraw)));
     document.querySelectorAll('[data-new-day]').forEach(b=>b.onclick=requestNewDay);document.querySelectorAll('[data-confirm-day]').forEach(b=>b.onclick=()=>{modal=null;advanceDay();});document.querySelectorAll('[data-next-week]').forEach(b=>b.onclick=startNextWeek);document.querySelectorAll('[data-save-plan]').forEach(b=>b.onclick=saveWeekPlan);document.querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>{editingPlan=true;route='weekStart';render();window.scrollTo(0,0);});document.querySelectorAll('[data-dismiss-wish]').forEach(b=>b.onclick=dismissWish);document.querySelectorAll('[data-wish-buy]').forEach(b=>b.onclick=()=>{shopScreen.cat=C.items.find(i=>i.id===b.dataset.wishBuy)?.category||'Игры';route='shop';render();});
     document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const k=b.dataset.toggle;state.settings[k]=!state.settings[k];if(k==='motion'){track(state.settings.motion?'motion_enabled':'motion_disabled',{difficultyMode:state.difficultyMode});syncMotionPreference();}save();render();});document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{modal={type:'resetConfirm'};render();});document.querySelectorAll('[data-confirm-reset]').forEach(b=>b.onclick=resetProfile);
-    document.querySelectorAll('[data-world-area]').forEach(b=>b.onclick=()=>{if(state.worldProgress.areas.includes(b.dataset.worldArea)){state.currentWorldArea=b.dataset.worldArea;save();render();}});document.querySelectorAll('[data-work-start]').forEach(b=>b.onclick=()=>startWorkActivity(b.dataset.workStart));document.querySelectorAll('[data-work-bin]').forEach(b=>b.onclick=()=>resolveWorkBin(b.dataset.workBin));document.querySelectorAll('[data-work-cancel]').forEach(b=>b.onclick=cancelWorkActivity);
+    document.querySelectorAll('[data-world-area]').forEach(b=>b.onclick=()=>{if(state.worldProgress.areas.includes(b.dataset.worldArea)){state.currentWorldArea=b.dataset.worldArea;save();render();}});
+    document.querySelectorAll('[data-owned-item]').forEach(b=>b.onclick=()=>{const item=C.items.find(x=>x.id===b.dataset.ownedItem),p=C.world?.placements?.[item?.id];if(!item||!p)return;state.currentWorldArea=p.area||'home';save();route='home';render();window.scrollTo(0,0);});document.querySelectorAll('[data-work-start]').forEach(b=>b.onclick=()=>startWorkActivity(b.dataset.workStart));document.querySelectorAll('[data-work-bin]').forEach(b=>b.onclick=()=>resolveWorkBin(b.dataset.workBin));document.querySelectorAll('[data-work-cancel]').forEach(b=>b.onclick=cancelWorkActivity);
     document.querySelectorAll('[data-jar-delta]').forEach(b=>b.onclick=()=>{const id=b.dataset.jarTarget,input=document.getElementById(id);if(!input)return;const delta=Number(b.dataset.jarDelta||0),budget=Number(document.getElementById('planTotal')?.dataset.budget||planningBudget());const current=Math.max(0,Number(input.value||0));input.value=Math.max(0,Math.min(budget,current+delta));renderJarValues();updatePlanTotal();});const planInputs=['planNecessary','planWants','planSavings','planReserve'].map(id=>document.getElementById(id)).filter(Boolean);planInputs.forEach(x=>x.addEventListener('input',updatePlanTotal));const slider=document.getElementById('goalSlider');if(slider)slider.oninput=()=>{document.getElementById('sliderValue').textContent=slider.value;document.getElementById('sliderWeeks').textContent=`${Math.ceil(1200/Number(slider.value))} недель`;};
   }
   let parentPuzzleState = null;
@@ -1859,7 +1880,7 @@
   }
 
   function petScreen(){
-    return `<section class="screen">${topbar(state.pet.name,true)}${worldSceneHtml()}${lowPetNeedsHtml()}<div class="section-title"><h2>Как себя чувствует</h2></div><div class="stat-row">${miniStat('Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div><div class="section-title"><h2>Забота о здоровье</h2></div>${emergencyCareButtonsHtml()}<div class="grid2"><button class="btn secondary" data-shop-open="Еда">Еда</button><button class="btn secondary" data-shop-open="Игры">Игры</button><button class="btn secondary" data-shop-open="Здоровье">Здоровье</button><button class="btn secondary" data-route="shop">Магазин</button></div><div class="section-title"><h2>Что появилось в мире</h2></div><div class="inventory-strip">${state.inventory.slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(i=>i&&isPersistentShopItem(i)).slice(0,16).length?state.inventory.slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(i=>i&&isPersistentShopItem(i)).slice(0,16).map(i=>`<div class="inventory-chip">${illustration(i.icon,i.name||i.label||i.id)}<span>${i.name}</span></div>`).join(''):`<div class="need-note">Здесь появятся вещи, которые остаются у питомца: игрушки, одежда и предметы комнаты.</div>`}</div></section>`;
+    return `<section class="screen">${topbar(state.pet.name,true)}${worldSceneHtml()}${lowPetNeedsHtml()}<div class="section-title"><h2>Как себя чувствует</h2></div><div class="stat-row">${miniStat('Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div><div class="section-title"><h2>Забота о здоровье</h2></div>${emergencyCareButtonsHtml()}<div class="grid2"><button class="btn secondary" data-shop-open="Еда">Еда</button><button class="btn secondary" data-shop-open="Игры">Игры</button><button class="btn secondary" data-shop-open="Здоровье">Здоровье</button><button class="btn secondary" data-route="shop">Магазин</button></div><div class="section-title owned-items-title"><h2>Мои вещи</h2><span class="soft-label">${ownedPersistentItems().length} шт.</span></div>${ownedItemsCollectionHtml()}</section>`;
   }
 
   function budgetScreen(){
