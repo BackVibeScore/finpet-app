@@ -1,0 +1,29 @@
+const fs=require('fs'),vm=require('vm'),crypto=require('crypto').webcrypto;
+const ROOT=__dirname+'/..';
+function element(){return {innerHTML:'',dataset:{},style:{setProperty:()=>{}},classList:{add:()=>{},remove:()=>{},toggle:()=>{}},querySelector:()=>null,querySelectorAll:()=>[],addEventListener:()=>{},remove:()=>{}}}
+function base(){return {version:6,onboardingDone:true,onboardingIntroCompleted:true,onboardingStep:6,ageMigrationPending:false,helpLastTopic:null,ageGroup:'7-11',difficultyMode:'easy',pet:{type:'cat',name:'Финни',color:'#7C8CF8',accessory:'none',satiety:70,mood:70,energy:80,care:70,development:10},wallet:{balance:1000,savings:500,weeklyIncome:1000,week:2,day:1,nextIncomeIn:7,needsSpent:0},activeGoal:'home',goalContributions:0,goalAdjustments:{},completedGoals:[],inventory:[],completedTasks:[],achievements:[],transactions:[],financialHealth:68,xp:0,streak:1,stats:{needsFirst:0,positiveDecisions:0,budgetViews:0,tasksDone:0,impulsePurchases:0,reserveUsed:0,petNeedsIgnored:0,weeksBalanced:0},currentEventId:'e12',currentChainId:null,eventResolved:false,recentEventIds:[],weekNeedsPlanning:false,weekPlan:{week:2,necessary:400,wants:200,savings:200,reserve:200},initialWeekPlan:{week:2,necessary:400,wants:200,savings:200,reserve:200},weekSnapshot:{week:2,startingBalance:1000,startingSavings:300,pet:{mood:70,development:10},worldStage:2,inventoryIds:[],areas:['home']},weekSummary:null,weekHistory:[{week:1}],weekOpeningCharges:[],dayActions:{count:0,necessary:0,optional:0,income:0,sideJob:false},petWish:null,analytics:[],futureObligations:[],worldProgress:{stage:2,areas:['home'],unlocks:[],decor:[]},worldPlacements:{},currentWorldArea:'home',storyChains:{},activityLimits:{week:2,sideJobs:0},workState:{week:2,shiftsUsed:0,shiftsLimit:3,activityUsage:{}},workSession:null,settings:{sound:true,motion:true}}}
+function boot(seed=base()){const app=element(),store={finpet_mvp_state_v1:JSON.stringify(seed)};const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const document={documentElement:{dataset:{}},getElementById:id=>id==='app'?app:null,querySelector:()=>null,querySelectorAll:()=>[],createElement:element,body:{appendChild:()=>{}},addEventListener:()=>{}};const sb={window:null,document,localStorage,location:{protocol:'file:'},navigator:{},crypto,Intl,console,confirm:()=>true,Math,matchMedia:()=>({matches:false}),setTimeout:(fn,ms)=>{if(ms<=1000)fn();return 1},clearTimeout:()=>{}};sb.window=sb;sb.window.scrollTo=()=>{};vm.createContext(sb);vm.runInContext(fs.readFileSync(ROOT+'/content.js','utf8'),sb,{filename:'content.js'});vm.runInContext(fs.readFileSync(ROOT+'/app.js','utf8'),sb,{filename:'app.js'});return {dev:sb.window.FINPET_DEV,app,sb}}
+function assert(v,m){if(!v)throw new Error(m)}
+const r=boot(),dev=r.dev,C=dev.getContent();
+const expected=[['home','Планшет',1200],['bike','Велосипед',1600],['trip','Билет в парк развлечений',2000],['console','Электросамокат',2400],['room','Смарт-часы',3000]];
+for(const [id,name,target] of expected){const g=C.goals.find(x=>x.id===id);assert(g&&g.name===name&&g.target===target,'wrong goal '+id)}
+const goalsHtml=dev.setRoute('goals');
+for(const text of ['На что будем копить?','Нужно:','В копилке:','Осталось:','Планшет','Билет в парк развлечений','Электросамокат','Смарт-часы'])assert(goalsHtml.includes(text),'goal UI missing '+text);
+assert(!goalsHtml.includes('Финансовая цель'),'junior goals expose adult term');
+assert(dev.getState().activeGoal==='home'&&goalsHtml.includes('Планшет'),'legacy active goal id no longer maps to new goal');
+const forbidden=/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|накопления|свободный остаток|периодический доход)\b/i;
+for(const route of ['home','budget','goals','savings','tasks']){const html=dev.setRoute(route);assert(!forbidden.test(html),'adult wording leaked into junior '+route+': '+(html.match(forbidden)||[])[0])}
+const shop=dev.setRoute('shop');assert(shop.includes('Нужно питомцу')&&shop.includes('Сытость +24'),'shop does not explain item effect');
+const budget=dev.setRoute('budget');assert(budget.includes('План готов')&&budget.includes('Оставлю'),'weekly plan wording incomplete');
+const visibleTaskText=C.tasks.filter(t=>(t.age||[]).includes('7-11')).flatMap(t=>[t.title,t.setup,...(t.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
+assert(!/\bрезерв\b/i.test(visibleTaskText),'junior task copy still uses резерв');
+const visibleEventText=C.events.filter(e=>(e.age||[]).includes('7-11')).flatMap(e=>[e.categoryLabel,e.title,e.situation,...(e.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
+assert(!/\bрезерв\b/i.test(visibleEventText),'junior event copy still uses резерв');
+const help=C.helpTopics.filter(t=>(t.ages||[]).includes('7-11'));
+assert(help.some(x=>x.id==='budget'&&x.title==='План на неделю'&&x.text.includes('называется бюджетом')),'budget term is not taught after plain wording');
+assert(help.some(x=>x.id==='goal'&&x.title==='На что копим'),'goal help is not child-first');
+assert(help.some(x=>x.id==='reserve'&&x.title==='На всякий случай'),'reserve help is not child-first');
+const source=fs.readFileSync(ROOT+'/app.js','utf8'),contentSource=fs.readFileSync(ROOT+'/content.js','utf8');
+assert(source.includes("moneyLabel(){ return isJunior()?'Монет осталось':'Баланс'; }"),'child money label helper missing');
+assert(contentSource.includes("name:'Планшет', target:1200")&&contentSource.includes("name:'Смарт-часы', target:3000"),'new goal source data missing');
+console.log('kid_copy_goals_smoke: OK');
