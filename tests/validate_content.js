@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm');
 const sandbox={window:{}}; vm.createContext(sandbox); vm.runInContext(fs.readFileSync(__dirname+'/../content.js','utf8'),sandbox);
 const C=sandbox.window.FINPET_CONTENT;
 function assert(c,m){if(!c)throw new Error(m)}
-assert(C.items.length>=20,'items < 20'); assert(C.events.length===40,'events must stay at 40'); assert(C.tasks.length>=15,'tasks < 15'); assert(C.goals.length>=5,'goals < 5');
+assert(C.items.length>=24,'items < 24'); assert(C.events.length===43,'events must stay at 43'); assert(C.tasks.length>=15,'tasks < 15'); assert(C.goals.length>=5,'goals < 5');
 assert(C.world.stages.length>=5,'macro stages missing'); assert(C.world.areas.length>=3,'world areas missing'); assert(C.eventChains.length>=2,'event chains missing');
 ['7-11','12-14','15-17'].forEach(age=>assert(C.events.some(e=>e.age.includes(age)),`no events for ${age}`));
 const validAges=['7-11','12-14','15-17']; C.events.concat(C.tasks).forEach(x=>(x.age||[]).forEach(age=>assert(validAges.includes(age),`legacy/invalid age ${age} in ${x.id}`)));
