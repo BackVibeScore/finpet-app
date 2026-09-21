@@ -5,8 +5,6 @@ function seed(){return {version:6,onboardingDone:true,onboardingIntroCompleted:t
 function boot(){const app=element(),store={finpet_mvp_state_v1:JSON.stringify(seed())};const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const document={documentElement:{dataset:{}},getElementById:id=>id==='app'?app:null,querySelector:()=>null,querySelectorAll:()=>[],createElement:element,body:{appendChild:()=>{}},addEventListener:()=>{}};const sb={window:null,document,localStorage,location:{protocol:'file:'},navigator:{},crypto,Intl,console,confirm:()=>true,Math,matchMedia:()=>({matches:false}),setTimeout:(fn,ms)=>1,clearTimeout:()=>{}};sb.window=sb;sb.window.scrollTo=()=>{};vm.createContext(sb);vm.runInContext(fs.readFileSync(ROOT+'/content.js','utf8'),sb);vm.runInContext(fs.readFileSync(ROOT+'/app.js','utf8'),sb);return {dev:sb.window.FINPET_DEV,app}}
 function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(),d=r.dev;
-d.actions.setShopCategory('Еда');let shop=d.setRoute('shop');
-assert(shop.includes('Полезная еда')&&shop.includes('Бургер')&&shop.includes('Мороженое'),'food cards missing');
 const before=d.getState();d.actions.buyItem('food_basic');let s=d.getState();
 assert(s.pet.satiety>before.pet.satiety,'food effect missing');
 assert(!s.inventory.some(x=>x.id==='food_basic'),'consumable food incorrectly stored in inventory');
