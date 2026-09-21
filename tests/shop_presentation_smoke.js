@@ -21,7 +21,7 @@ assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(src.includes("petBubble='';")&&src.includes("item.category==='Еда'"),'shop purchase does not explicitly clear pet bubble / distinguish food');
-assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART')&&css.includes('V23 ACTION MENU + REGENERATED FOOD ART')&&css.includes('V24 CONSISTENT ACTION NAVIGATION'),'shop presentation styles missing');
+assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART')&&css.includes('V23 ACTION MENU + REGENERATED FOOD ART')&&css.includes('V24 CONSISTENT ACTION NAVIGATION')&&css.includes('V25 HOME FLOW HIERARCHY'),'shop presentation styles missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'legacy food sprite missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items-v2.svg'))&&fs.statSync(path.join(ROOT,'assets/food-items-v2.svg')).size>4000,'regenerated food sprite missing');
 assert(css.includes("assets/food-items-v2.svg"),'regenerated food sprite not wired into styles');
@@ -29,6 +29,22 @@ assert(src.includes('quick-actions quick-actions-v2'),'refined quick action menu
 assert(src.includes('data-shop-open="Игры"')&&src.includes('data-shop-open="Здоровье"'),'home actions still bypass category menus');
 assert(!src.includes('<b>Поиграть</b><small>80 ●</small>')&&!src.includes('<b>Здоровье</b><small>60 ●</small>'),'home actions still show direct-spend pricing');
 assert(src.includes('<b>Еда</b><small>выбрать еду</small>')&&src.includes('<b>Игры</b><small>выбрать игру</small>')&&src.includes('<b>Магазин</b><small>все товары</small>'),'action menu copy is inconsistent');
+const homeStart=src.indexOf('function homeScreen()');
+const homeEnd=src.indexOf('function petScreen()',homeStart);
+const homeSrc=src.slice(homeStart,homeEnd);
+const posActions=homeSrc.indexOf('quick-actions-title');
+const posToday=homeSrc.indexOf('home-today-title');
+const posEndDay=homeSrc.indexOf('home-end-day');
+const posProgress=homeSrc.indexOf('home-progress-divider');
+const posMoney=homeSrc.indexOf('home-money-title');
+const posGoal=homeSrc.indexOf('${goalBlock}');
+const posTask=homeSrc.indexOf('${taskBlock}');
+const posSection=homeSrc.indexOf('${sectionHomeCard()}');
+const posWorld=homeSrc.indexOf('${worldProgressCard()}');
+assert(posActions>=0&&posToday>posActions&&posEndDay>posToday&&posProgress>posEndDay,'home daily flow order is broken');
+assert(posMoney>posProgress&&posGoal>posMoney&&posTask>posGoal&&posSection>posTask&&posWorld>posSection,'home progress blocks order is broken');
+assert(homeSrc.includes('home-finance-strip')&&!homeSrc.includes('money-strip home-money'),'home finance summary still duplicates the old dashboard');
+assert(src.includes('event-resolved-compact')&&src.includes('Ситуация дня решена'),'resolved event is not compact');
 assert(sw.includes('./assets/food-items.webp')&&sw.includes('./assets/food-items-v2.svg'),'food artwork missing from offline cache');
 const generated=['item-haircut.webp','item-prevention.webp','item-cinema.webp','item-bike.webp','goal-bike.webp'];
 for(const file of generated){
