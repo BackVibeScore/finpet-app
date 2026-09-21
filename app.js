@@ -34,6 +34,26 @@
   function clamp(n, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(n) || 0)); }
   function esc(s = '') { return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
   function fmt(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(Number(n) || 0)); }
+  function isJunior(){ return state.difficultyMode==='easy'; }
+  function moneyLabel(){ return isJunior()?'Монет осталось':'Баланс'; }
+  function displayTxCategory(category){
+    if(!isJunior()) return category;
+    if(category==='Необходимые расходы') return 'Нужно';
+    if(category==='Желания') return 'Хочу';
+    if(category==='Доход'||category==='Подработка') return 'Получил монеты';
+    if(category==='Цель') return 'На что копим';
+    return category;
+  }
+  function itemEffectText(item){
+    const bits=[];
+    if(Number(item?.effect?.satiety)>0) bits.push(`Сытость +${item.effect.satiety}`);
+    if(Number(item?.effect?.mood)>0) bits.push(`Настроение +${item.effect.mood}`);
+    if(Number(item?.effect?.care)>0) bits.push(`Уход +${item.effect.care}`);
+    if(Number(item?.effect?.energy)>0) bits.push(`Энергия +${item.effect.energy}`);
+    if(Number(item?.effect?.energy)<0) bits.push(`Энергия ${item.effect.energy}`);
+    if(item?.cosmetic) bits.push('Меняет вид или комнату');
+    return bits.join(' · ')||'Появится в мире питомца';
+  }
   function uid() { return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random()}`); }
 
   function tx(type, amount, category, description, source, meta = {}) {
@@ -291,7 +311,7 @@
       <div class="tabs">${cats.map(c => `<button class="chip ${c === cat ? 'active' : ''}" data-shop-cat="${c}">${c}</button>`).join('')}</div>
       <div class="shop-list">${items.map(item => {
         const owned = item.cosmetic && state.inventory.some(x => x.id === item.id);
-        return `<div class="card shop-item shop-item-v2"><div class="shop-ico">${illustration(item.icon,item.name||item.label||item.id)}</div><div><h3>${item.name}</h3><p>${item.need ? 'Базовая потребность' : 'Желание / улучшение мира'}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : 'Желание'}</span><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
+        return `<div class="card shop-item shop-item-v2"><div class="shop-ico">${illustration(item.icon,item.name||item.label||item.id)}</div><div><h3>${item.name}</h3><p>${isJunior()?(item.need?'Нужно питомцу':'Для радости'):(item.need?'Базовая потребность':'Желание / улучшение мира')}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : (isJunior()?'Хочу':'Желание')}</span><div class="item-effect-text">${esc(itemEffectText(item))}</div><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
       }).join('')}</div>
     </section>`;
   }
@@ -299,7 +319,7 @@
   function tasksScreen() {
     const list = ageTaskList();
     return `<section class="screen">${topbar('Задания')}
-      <div class="soft-note"><b>Дополнительные миссии</b><span>Основная финансовая жизнь проходит в неделе, событиях и покупках. Здесь можно попробовать отдельные механики и получить небольшой дополнительный доход.</span></div>
+      <div class="soft-note"><b>${isJunior()?'Дополнительные задания':'Дополнительные миссии'}</b><span>${isJunior()?'Тут можно потренироваться и получить ещё монеты.':'Основная финансовая жизнь проходит в неделе, событиях и покупках. Здесь можно попробовать отдельные механики и получить небольшой дополнительный доход.'}</span></div>
       <div class="task-list">${list.map(t => {
         const done = state.completedTasks.includes(t.id);
         return `<button class="card task-card ${done ? 'done' : ''}" data-open-task="${t.id}"><div class="task-head"><h3>${done ? '✓ ' : ''}${t.title}</h3><span class="reward">+${t.reward} ●</span></div><p>${t.setup}</p><span class="tag">${taskTypeLabel(t.mechanicType)}</span></button>`;
@@ -316,7 +336,7 @@
     } else if (t.mechanicType === 'allocation') {
       const amount = t.amount || 1000;
       const defaults = [Math.round(amount*.4/10)*10, Math.round(amount*.2/10)*10, Math.round(amount*.25/10)*10]; defaults.push(Math.max(0, amount-defaults.reduce((a,b)=>a+b,0)));
-      body = `<div class="mini-allocation"><div class="allocation-total">Распредели ${fmt(amount)} монет</div>${['necessary', 'wants', 'savings', 'reserve'].map((k, i) => `<label><span>${['Необходимое', 'Желания', 'Копилка', 'Резерв'][i]}</span><input type="number" id="task_${k}" min="0" step="10" value="${defaults[i]}"></label>`).join('')}<button class="btn primary block" data-task-allocate>Посмотреть последствия</button></div>`;
+      body = `<div class="mini-allocation"><div class="allocation-total">${isJunior()?'Разложи':'Распредели'} ${fmt(amount)} монет</div>${['necessary', 'wants', 'savings', 'reserve'].map((k, i) => `<label><span>${(isJunior()?['Нужно','Хочу','Коплю','Оставлю']:['Необходимое','Желания','Копилка','Резерв'])[i]}</span><input type="number" id="task_${k}" min="0" step="10" value="${defaults[i]}"></label>`).join('')}<button class="btn primary block" data-task-allocate>${isJunior()?'Посмотреть, что будет':'Посмотреть последствия'}</button></div>`;
     } else if (t.mechanicType === 'subscriptions') {
       const subs = t.subscriptions || [{name:'Музыка',price:60,used:true},{name:'Игровой сервис',price:90,used:false},{name:'Облако',price:50,used:true}];
       body = `<div class="subscription-task"><p class="subtle">Отметь подписки, которые ты бы оставил. Подсказка: посмотри, чем действительно пользуешься.</p>${subs.map((x,i)=>`<label><input type="checkbox" id="sub_${i}" ${x.used?'checked':''}><span><b>${x.name}</b><small>${x.price} ● / нед.</small></span></label>`).join('')}<button class="btn primary block" data-task-subscriptions>Посмотреть итог</button></div>`;
@@ -329,44 +349,44 @@
   }
 
   function planFactHtml(plan, actual) {
-    const rows = [
-      ['Необходимое', plan.necessary, actual.necessary],
-      ['Желания', plan.wants, actual.wants],
-      ['Копилка', plan.savings, actual.savings],
-      ['Резерв', plan.reserve, Math.max(0, state.wallet.balance)]
-    ];
-    return `<div class="card plan-fact"><div class="pf-head"><span></span><b>План</b><b>Факт</b></div>${rows.map(([n, p, f]) => `<div class="pf-row"><span>${n}</span><b>${fmt(p)}</b><b class="${f > p * 1.2 && n === 'Желания' ? 'over' : ''}">${fmt(f)}</b></div>`).join('')}${planInsight(plan, actual) ? `<div class="pf-insight">${planInsight(plan, actual)}</div>` : ''}</div>`;
+    const junior=isJunior();
+    const rows=junior?[['Нужно',plan.necessary,actual.necessary],['Хочу',plan.wants,actual.wants],['Коплю',plan.savings,actual.savings],['Оставлю',plan.reserve,Math.max(0,state.wallet.balance)]]
+      :[['Необходимое',plan.necessary,actual.necessary],['Желания',plan.wants,actual.wants],['Копилка',plan.savings,actual.savings],['Резерв',plan.reserve,Math.max(0,state.wallet.balance)]];
+    return `<div class="card plan-fact"><div class="pf-head"><span></span><b>${junior?'Планировал':'План'}</b><b>${junior?'Получилось':'Факт'}</b></div>${rows.map(([n,p,f])=>`<div class="pf-row"><span>${n}</span><b>${fmt(p)}</b><b class="${f>p*1.2&&(n==='Желания'||n==='Хочу')?'over':''}">${fmt(f)}</b></div>`).join('')}${planInsight(plan,actual)?`<div class="pf-insight">${planInsight(plan,actual)}</div>`:''}</div>`;
   }
-
-  function planInsight(plan, actual) {
-    if (actual.wants > plan.wants + 80) return `На желания уже ушло на ${fmt(actual.wants - plan.wants)} больше плана.`;
-    if (actual.savings + 50 < plan.savings) return `До планового взноса в копилку пока не хватает ${fmt(plan.savings - actual.savings)}.`;
-    if (actual.necessary > plan.necessary + 60) return `Необходимые расходы оказались выше плана на ${fmt(actual.necessary - plan.necessary)}.`;
+  function planInsight(plan,actual){
+    if(isJunior()){
+      if(actual.wants>plan.wants+80)return `На хотелки ушло на ${fmt(actual.wants-plan.wants)} монет больше, чем ты планировал.`;
+      if(actual.savings+50<plan.savings)return `В копилку положили на ${fmt(plan.savings-actual.savings)} монет меньше, чем хотели.`;
+      if(actual.necessary>plan.necessary+60)return `На нужное ушло на ${fmt(actual.necessary-plan.necessary)} монет больше.`;
+      return 'Пока всё идёт близко к плану.';
+    }
+    if(actual.wants>plan.wants+80)return `На желания уже ушло на ${fmt(actual.wants-plan.wants)} больше плана.`;
+    if(actual.savings+50<plan.savings)return `До планового взноса в копилку пока не хватает ${fmt(plan.savings-actual.savings)}.`;
+    if(actual.necessary>plan.necessary+60)return `Необходимые расходы оказались выше плана на ${fmt(actual.necessary-plan.necessary)}.`;
     return 'Пока план и фактические решения близки. Он может измениться после новых событий.';
   }
-
-  function historyHtml() {
-    if (!state.transactions.length) return `<div class="empty">Пока нет операций.</div>`;
-    return state.transactions.slice(0, 16).map(t => `<div class="tx"><div class="tx-icon">${iconForTx(t)}</div><div><b>${esc(t.description)}</b><p>${esc(t.category)} · нед. ${t.week || state.wallet.week}, день ${t.day || 1}</p></div><div class="tx-amount ${t.amount >= 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : ''}${fmt(t.amount)}</div></div>`).join('');
+  function historyHtml(){
+    if(!state.transactions.length)return `<div class="empty">${isJunior()?'Пока с монетами ничего не происходило.':'Пока нет операций.'}</div>`;
+    return state.transactions.slice(0,16).map(t=>`<div class="tx"><div class="tx-icon">${iconForTx(t)}</div><div><b>${esc(t.description)}</b><p>${esc(displayTxCategory(t.category))} · нед. ${t.week||state.wallet.week}, день ${t.day||1}</p></div><div class="tx-amount ${t.amount>=0?'pos':'neg'}">${t.amount>0?'+':''}${fmt(t.amount)}</div></div>`).join('');
   }
-
   function achievementsScreen() {
     return `<section class="screen">${topbar('Достижения', true)}<div class="ach-grid">${C.achievements.map(a => `<div class="ach ${state.achievements.includes(a.id) ? '' : 'locked'}"><div class="aico">${illustration(a.icon,a.name||a.label||a.id)}</div><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('')}</div></section>`;
   }
 
-  function planFactSummaryHtml(s) {
-    const p = s.plan || { necessary: 0, wants: 0, savings: 0, reserve: 0 }, a = s.actual;
-    const rows = [['Необходимое', p.necessary, a.necessary], ['Желания', p.wants, a.wants], ['Копилка', p.savings, a.savings], ['Осталось', p.reserve, s.endingBalance]];
-    return `<div class="card plan-fact"><div class="pf-head"><span></span><b>План</b><b>Факт</b></div>${rows.map(([n, x, y]) => `<div class="pf-row"><span>${n}</span><b>${fmt(x)}</b><b>${fmt(y)}</b></div>`).join('')}</div>`;
+  function planFactSummaryHtml(s){
+    const p=s.plan||{necessary:0,wants:0,savings:0,reserve:0},a=s.actual,junior=isJunior();
+    const rows=junior?[['Нужно',p.necessary,a.necessary],['Хочу',p.wants,a.wants],['Коплю',p.savings,a.savings],['Оставлю',p.reserve,s.endingBalance]]
+      :[['Необходимое',p.necessary,a.necessary],['Желания',p.wants,a.wants],['Копилка',p.savings,a.savings],['Осталось',p.reserve,s.endingBalance]];
+    return `<div class="card plan-fact"><div class="pf-head"><span></span><b>${junior?'Планировал':'План'}</b><b>${junior?'Получилось':'Факт'}</b></div>${rows.map(([n,x,y])=>`<div class="pf-row"><span>${n}</span><b>${fmt(x)}</b><b>${fmt(y)}</b></div>`).join('')}</div>`;
   }
-
   function ageLabel(age = []) { return age.length === 3 ? 'Все возраста' : age.join(', '); }
   function updatePlanTotal() {
     const ids = ['planNecessary', 'planWants', 'planSavings', 'planReserve'];
     const total = ids.reduce((sum, id) => sum + Math.max(0, Number(document.getElementById(id)?.value || 0)), 0);
     const el = document.getElementById('planTotal'); if (!el) return;
     const budget = Number(el.dataset.budget || planningBudget());
-    el.textContent = `План: ${fmt(total)} из ${fmt(budget)}`;
+    el.textContent = isJunior()?`Разложено: ${fmt(total)} из ${fmt(budget)}`:`План: ${fmt(total)} из ${fmt(budget)}`;
     el.classList.toggle('over', total > budget);
   }
 
@@ -384,10 +404,10 @@
     const t = C.tasks.find(x => x.id === taskScreen.id);
     const total = vals.reduce((a, b) => a + b, 0); const amount = t?.amount || 1000;
     let result = '';
-    if (total > amount) result = `Ты распределил ${fmt(total)} монет, хотя доступно ${fmt(amount)}. План нужно уменьшить на ${fmt(total - amount)}.`;
-    else if (vals[0] < 300) result = 'На необходимое оставлено мало. Если появится обычный расход на еду и уход, план придётся менять.';
-    else if (vals[3] < 100) result = 'План почти весь расписан. Он работает, но для неожиданности осталось мало пространства.';
-    else result = 'В плане есть место и для необходимого, и для желаний, и для будущего. Реальная неделя всё равно может его изменить.';
+    if(total>amount)result=isJunior()?`Ты разложил ${fmt(total)} монет, а есть только ${fmt(amount)}. Убери ${fmt(total-amount)} монет.`:`Ты распределил ${fmt(total)} монет, хотя доступно ${fmt(amount)}. План нужно уменьшить на ${fmt(total-amount)}.`;
+    else if(vals[0]<300)result=isJunior()?'На еду и уход оставлено мало. Возможно, придётся отложить одну из хотелок.':'На необходимое оставлено мало. Если появится обычный расход на еду и уход, план придётся менять.';
+    else if(vals[3]<100)result=isJunior()?'Почти все монеты уже заняты. На всякий случай осталось совсем немного.':'План почти весь расписан. Он работает, но для неожиданности осталось мало пространства.';
+    else result=isJunior()?'Монеты есть и на нужное, и на хотелки, и на копилку. Немного осталось на потом.':'В плане есть место и для необходимого, и для желаний, и для будущего. Реальная неделя всё равно может его изменить.';
     taskResult = { taskId: taskScreen.id, choice: { result, impact: { health: total <= amount && vals[3] >= 100 ? 5 : 0 } } }; render();
   }
 
@@ -413,9 +433,9 @@
       if (t.cyberSafety) track('cyber_safety_task_completed', { taskId:t.id, topic:t.topic || null, ageGroup:state.ageGroup });
       modal = buildFinancialFeedback(
         'Задание выполнено',
-        [{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:'Награда',value:`+${fmt(t.reward)} ●`}],
-        'Награда за задание добавлена в обычный баланс. Развитие питомца теперь рассчитывается по итогам всего игрового периода.',
-        [{label:'Продолжить',route:'tasks'},{label:'Открыть бюджет',route:'budget'}]
+        [{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:isJunior()?'Получил':'Награда',value:`+${fmt(t.reward)} ●`}],
+        isJunior()?'Монеты за задание уже добавлены. Питомец растёт по итогам всей недели.':'Награда за задание добавлена в обычный баланс. Развитие питомца рассчитывается по итогам всей недели.',
+        [{label:'Продолжить',route:'tasks'},{label:isJunior()?'Открыть монеты':'Открыть бюджет',route:'budget'}]
       );
     }
     checkAchievements(); save(); taskResult = null; route = 'tasks'; render();
@@ -433,12 +453,12 @@
     modal = buildFinancialFeedback(
       `Вернули ${fmt(n)} монет`,
       [
-        {label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},
-        {label:'Копилка',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},
-        afterWeeks!=null?{label:'До цели',value:`≈ ${afterWeeks} нед.`}:null
+        {label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},
+        {label:'В копилке',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},
+        afterWeeks!=null?{label:'До покупки',value:`≈ ${afterWeeks} нед.`}:null
       ],
-      beforeWeeks!=null&&afterWeeks!=null&&afterWeeks>beforeWeeks?'Часть накоплений вернулась на текущие расходы, поэтому путь к цели стал длиннее.':'Монеты вернулись из копилки на текущий баланс.',
-      [{label:'Продолжить',route:'savings'},{label:'Открыть бюджет',route:'budget'}]
+      isJunior()?(beforeWeeks!=null&&afterWeeks!=null&&afterWeeks>beforeWeeks?'Ты взял монеты из копилки. До выбранной покупки теперь немного дальше.':'Монеты вернулись из копилки.'):(beforeWeeks!=null&&afterWeeks!=null&&afterWeeks>beforeWeeks?'Часть накоплений вернулась на текущие расходы, поэтому путь к цели стал длиннее.':'Монеты вернулись из копилки на текущий баланс.'),
+      [{label:'Продолжить',route:'savings'},{label:isJunior()?'Открыть монеты':'Открыть бюджет',route:'budget'}]
     );
     render();
   }
@@ -460,19 +480,28 @@
     return a.savings >= p.savings * 0.7 && a.wants <= p.wants * 1.35 + 50 && s.endingBalance >= Math.min(100, p.reserve) && petWellbeing() >= 50;
   }
 
-  function weekInsights(plan, actual, snap) {
-    const out = [];
-    if (actual.wants > plan.wants + 80) out.push(`На желания ушло на ${fmt(actual.wants - plan.wants)} монет больше, чем ты планировал. Это уменьшило свободу в конце недели.`);
-    if (actual.savings >= plan.savings && actual.savings > 0) out.push(`Ты выполнил или превысил план накоплений и приблизил цель.`);
-    else if (plan.savings > actual.savings + 50) out.push(`В копилку получилось отправить на ${fmt(plan.savings - actual.savings)} меньше плана. Можно посмотреть, какие решения изменили темп.`);
-    if (state.wallet.balance < Math.max(80, plan.reserve * 0.5)) out.push('Свободный запас к концу недели стал небольшим: неожиданная трата потребовала бы менять план.');
-    if (state.wallet.balance > plan.reserve + 250 && state.pet.mood < (snap.pet?.mood ?? state.pet.mood) - 8) out.push(`Денег осталось много, но настроение ${state.pet.name} снизилось. Экономить абсолютно на всём тоже не было целью.`);
-    if (actual.necessary > plan.necessary + 60) out.push(`Необходимые расходы оказались выше плана на ${fmt(actual.necessary - plan.necessary)}. План пришлось адаптировать — это нормальная часть финансовой жизни.`);
-    if (out.length < 2 && isBalancedWeek({ plan, actual, endingBalance: state.wallet.balance })) out.push('Ты сохранил запас, не отказался от всех желаний и продолжил движение к цели.');
-    if (out.length < 2) out.push('План и факт не обязаны совпадать. Полезно понимать, какое событие или желание изменило исходный план.');
-    return out.slice(0, 2);
+  function weekInsights(plan,actual,snap){
+    const out=[];
+    if(isJunior()){
+      if(actual.wants>plan.wants+80)out.push(`На хотелки ушло на ${fmt(actual.wants-plan.wants)} монет больше, чем ты планировал.`);
+      if(actual.savings>=plan.savings&&actual.savings>0)out.push('Ты положил в копилку столько, сколько хотел. До покупки стало ближе.');
+      else if(plan.savings>actual.savings+50)out.push(`В копилку получилось положить на ${fmt(plan.savings-actual.savings)} монет меньше.`);
+      if(state.wallet.balance<Math.max(80,plan.reserve*.5))out.push('Монет на потом осталось мало. Неожиданная трата могла бы помешать плану.');
+      if(actual.necessary>plan.necessary+60)out.push(`На нужное ушло на ${fmt(actual.necessary-plan.necessary)} монет больше, чем думали в начале недели.`);
+      if(out.length<2&&isBalancedWeek({plan,actual,endingBalance:state.wallet.balance}))out.push('Ты позаботился о нужном, положил монеты в копилку и оставил немного на потом.');
+      if(out.length<2)out.push('План может меняться. Главное — заметить, куда ушли монеты.');
+      return out.slice(0,2);
+    }
+    if(actual.wants>plan.wants+80)out.push(`На желания ушло на ${fmt(actual.wants-plan.wants)} монет больше, чем ты планировал. Это уменьшило свободу в конце недели.`);
+    if(actual.savings>=plan.savings&&actual.savings>0)out.push('Ты выполнил или превысил план накоплений и приблизил цель.');
+    else if(plan.savings>actual.savings+50)out.push(`В копилку получилось отправить на ${fmt(plan.savings-actual.savings)} меньше плана. Можно посмотреть, какие решения изменили темп.`);
+    if(state.wallet.balance<Math.max(80,plan.reserve*.5))out.push('Свободный запас к концу недели стал небольшим: неожиданная трата потребовала бы менять план.');
+    if(state.wallet.balance>plan.reserve+250&&state.pet.mood<(snap.pet?.mood??state.pet.mood)-8)out.push(`Денег осталось много, но настроение ${state.pet.name} снизилось. Экономить абсолютно на всём тоже не было целью.`);
+    if(actual.necessary>plan.necessary+60)out.push(`Необходимые расходы оказались выше плана на ${fmt(actual.necessary-plan.necessary)}. План пришлось адаптировать — это нормальная часть финансовой жизни.`);
+    if(out.length<2&&isBalancedWeek({plan,actual,endingBalance:state.wallet.balance}))out.push('Ты сохранил запас, не отказался от всех желаний и продолжил движение к цели.');
+    if(out.length<2)out.push('План и факт не обязаны совпадать. Полезно понимать, какое событие или желание изменило исходный план.');
+    return out.slice(0,2);
   }
-
 
   function calculatePeriodDevelopment(plan, actual, endingBalance = state.wallet.balance) {
     const p = plan || {necessary:0,wants:0,savings:0,reserve:0};
@@ -489,11 +518,9 @@
     if (wantsWithinPlan) score += 1;
     if (savingsMet) score += 2;
     if (reserveKept) score += 1;
-    const explanation = score >= 6
-      ? 'Ты закрыл важные расходы, держался рядом с планом и регулярно откладывал. Питомец стал увереннее.'
-      : score >= 3
-        ? 'Часть плана получилась хорошо. Развитие продолжается, а в следующем периоде можно улучшить ещё один шаг.'
-        : 'Важные решения были не все закрыты по плану. Прогресс не обнуляется — следующий период даёт новую попытку.';
+    const explanation=isJunior()
+      ?(score>=6?'Ты позаботился о важном и положил монеты в копилку. Поэтому питомец немного вырос.':score>=3?'Часть недели получилась по плану. Питомец продолжает расти.':'В эту неделю получилось не всё. Ничего страшного — впереди новая неделя.')
+      :(score>=6?'Ты закрыл важные расходы, держался рядом с планом и регулярно откладывал. Питомец стал увереннее.':score>=3?'Часть плана получилась хорошо. Развитие продолжается, а в следующей неделе можно улучшить ещё один шаг.':'Важные решения были не все закрыты по плану. Прогресс не обнуляется — следующая неделя даёт новую попытку.');
     return {score,necessaryCovered,necessaryClose,wantsWithinPlan,savingsMet,reserveKept,explanation};
   }
 
@@ -684,9 +711,9 @@
     const charges = state.weekOpeningCharges || [];
     const demo = demoStrip();
     if (state.ageGroup === '7-11') {
-      return `<section class="screen week-screen junior-week">${demo}<div class="week-kicker">${editingPlan ? 'Можно поменять' : 'Новая неделя'}</div><h1>Разложим монеты</h1><p class="week-lead">Монет всего ${fmt(available)}. Перекладывай их между четырьмя коробками — всё сразу выбрать не получится.</p>
+      return `<section class="screen week-screen junior-week">${demo}<div class="week-kicker">${editingPlan ? 'Можно поменять' : 'Новая неделя'}</div><h1>Разложи монеты</h1><p class="week-lead">У тебя ${fmt(available)} монет. Реши, сколько оставить на каждую часть недели.</p>
         ${charges.length ? `<div class="opening-charges"><b>Сначала произошло само</b>${charges.map(c=>`<span>${esc(c.description)} −${fmt(c.amount)}</span>`).join('')}</div>`:''}
-        <div class="junior-jars">${jarPlannerRow('Нужно','planNecessary',needs,'●','еда и уход')}${jarPlannerRow('Хочу','planWants',wants,'★','игры и вещи')}${jarPlannerRow('Коплю','planSavings',savings,'◆',g ? g.name : 'на большую цель')}${jarPlannerRow('Оставлю','planReserve',reserve,'○','на потом')}</div>
+        <div class="junior-jars">${jarPlannerRow('Нужно','planNecessary',needs,'●','еда и уход')}${jarPlannerRow('Хочу','planWants',wants,'★','игры и вещи')}${jarPlannerRow('Коплю','planSavings',savings,'◆',g ? g.name : 'на большую цель')}${jarPlannerRow('Оставлю','planReserve',reserve,'○','на потом или на всякий случай')}</div>
         <div class="plan-total" id="planTotal" data-budget="${available}">Разложено: ${fmt(needs+wants+savings+reserve)} из ${fmt(available)}</div><button class="btn primary block" data-save-plan>${editingPlan?'Сохранить':'Начать неделю'}</button></section>`;
     }
     return `<section class="screen week-screen ${state.ageGroup==='15-17'?'teen-week':''}">${demo}<div class="week-kicker">${editingPlan ? 'План недели' : 'Новая неделя'}</div><h1>${editingPlan ? 'Обновить распределение' : `Неделя ${state.wallet.week}`}</h1><p class="week-lead">План показывает приоритеты. Он может меняться после событий.</p>
@@ -719,7 +746,7 @@
   function worldProgressCard() {
     const s = worldStageData(); const next = nextWorldStageData();
     const remaining = next ? Math.max(0, next.unlockWeek - completedWeeks()) : 0;
-    return `<div class="card world-progress-card"><div><div class="eyebrow">Развитие мира</div><h3>Этап ${s.id} · ${s.title}</h3><p>${s.note}</p></div>${next?`<div class="next-unlock"><b>${next.title}</b><span>${remaining<=1?'совсем близко':`ещё около ${remaining} нед.`}</span></div>`:'<div class="next-unlock"><b>Мир открыт</b><span>дальше решают цели и события</span></div>'}</div>`;
+    return `<div class="card world-progress-card"><div><div class="eyebrow">${isJunior()?'Как меняется мир':'Развитие мира'}</div><h3>Этап ${s.id} · ${s.title}</h3><p>${s.note}</p></div>${next?`<div class="next-unlock"><b>${next.title}</b><span>${remaining<=1?'совсем близко':`ещё около ${remaining} нед.`}</span></div>`:'<div class="next-unlock"><b>Мир открыт</b><span>дальше решают цели и события</span></div>'}</div>`;
   }
 
   function wishHtml() {
@@ -731,25 +758,25 @@
 
   function purchaseContext(item) {
     const afterBalance = Math.max(0,state.wallet.balance-item.price); const reserve = Math.max(0,afterBalance-needsReserve()); const delay = item.need?0:purchaseGoalDelay(item.price);
-    if (state.ageGroup==='7-11') return delay>0?`Останется ${fmt(afterBalance)}. Большая цель станет дальше.`:`После покупки останется ${fmt(afterBalance)} монет.`;
+    if(state.ageGroup==='7-11')return delay>0?`Останется ${fmt(afterBalance)} монет. До ${esc(goalView()?.name||'большой покупки')} станет немного дальше.`:`После покупки останется ${fmt(afterBalance)} монет.`;
     if (delay>0) return `Свободно ≈ ${fmt(reserve)}. Цель может сдвинуться примерно на ${delay} нед.`;
     return `После покупки свободно ≈ ${fmt(reserve)} монет.`;
   }
 
-  function goalsScreen() {
-    const title=state.ageGroup==='7-11'?'На что коплю':'Цели';
-    const lead=state.ageGroup==='7-11'?'Большие вещи требуют нескольких недель. Когда цель достигнута, мир действительно меняется.':state.ageGroup==='15-17'?'Долгосрочная цель конкурирует с текущими расходами и может открывать новые возможности.':'Цели меняют не только цифру: после достижения могут открыться новые места и активности.';
-    return `<section class="screen">${topbar(title)}<p class="subtle">${lead}</p><div class="goal-list">${C.goals.map(g=>{const v=goalView(g),target=goalTarget(g),active=state.activeGoal===g.id,pct=active?progressPct():0,done=state.completedGoals.includes(g.id);return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${illustration(v.icon,v.name||v.label||v.id)}</div><div><h3>${esc(v.name)}</h3><p>${fmt(target)} монет · ${esc(v.note)}</p>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">${fmt(state.wallet.savings)} / ${fmt(target)} · ≈ ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Открыто</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Выбрано':'Выбрать'}</button>`}</div>`}).join('')}</div><button class="btn secondary block" data-savings>Открыть копилку</button></section>`;
+  function goalsScreen(){
+    const junior=isJunior(),title=junior?'На что будем копить?':'Цели';
+    const lead=junior?'Выбери вещь или приключение. Монеты из копилки будут приближать тебя к этой цели.':state.ageGroup==='15-17'?'Долгосрочная цель конкурирует с текущими расходами и может открывать новые возможности.':'Цели меняют не только цифру: после достижения могут открыться новые места и активности.';
+    return `<section class="screen">${topbar(title)}<p class="subtle">${lead}</p><div class="goal-list">${C.goals.map(g=>{const v=goalView(g),target=goalTarget(g),active=state.activeGoal===g.id,pct=active?progressPct():0,done=state.completedGoals.includes(g.id),remain=Math.max(0,target-state.wallet.savings);if(junior)return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${illustration(v.icon,v.name||v.label||v.id)}</div><div><h3>${esc(v.name)}</h3><p>${esc(v.note)}</p><div class="goal-kid-numbers"><span>Нужно: <b>${fmt(target)} монет</b></span><span>В копилке: <b>${fmt(state.wallet.savings)}</b></span><span>Осталось: <b>${fmt(remain)}</b></span></div>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">Примерно ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Готово</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Копим сюда':'Копить на это'}</button>`}</div>`;return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${illustration(v.icon,v.name||v.label||v.id)}</div><div><h3>${esc(v.name)}</h3><p>${fmt(target)} монет · ${esc(v.note)}</p>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">${fmt(state.wallet.savings)} / ${fmt(target)} · ≈ ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Открыто</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Выбрано':'Выбрать'}</button>`}</div>`}).join('')}</div><button class="btn secondary block" data-savings>Открыть копилку</button></section>`;
   }
   function progressScreen() {
     const h=healthText(),ws=worldStageData(),next=nextWorldStageData();
-    return `<section class="screen">${topbar('Прогресс',true)}${worldProgressCard()}<div class="card"><div class="pet-stage" style="height:170px">${petSVG()}</div><div class="center"><b>${petStage()}</b><p class="subtle">Развитие питомца: ${Math.round(state.pet.development)}/100</p><div class="bar"><i style="width:${state.pet.development}%"></i></div></div></div><div class="metric-grid"><div class="metric"><div class="label">Пройдено недель</div><div class="value">${state.weekHistory.length}</div></div><div class="metric"><div class="label">Открыто мест</div><div class="value">${state.worldProgress.areas.length}</div></div><div class="metric"><div class="label">Предметов в мире</div><div class="value">${Object.keys(state.worldPlacements||{}).length}</div></div><div class="metric"><div class="label">${state.ageGroup==='7-11'?'Денег хватит?':'Состояние'}</div><div class="value compact-value">${h[0]}</div></div></div>${next?`<div class="card next-stage-detail"><b>Дальше: ${next.title}</b><p>${next.note}</p></div>`:''}</section>`;
+    return `<section class="screen">${topbar(isJunior()?'Как всё меняется':'Прогресс',true)}${worldProgressCard()}<div class="card"><div class="pet-stage" style="height:170px">${petSVG()}</div><div class="center"><b>${petStage()}</b><p class="subtle">${isJunior()?'Как растёт питомец':'Развитие питомца'}: ${Math.round(state.pet.development)}/100</p><div class="bar"><i style="width:${state.pet.development}%"></i></div></div></div><div class="metric-grid"><div class="metric"><div class="label">Пройдено недель</div><div class="value">${state.weekHistory.length}</div></div><div class="metric"><div class="label">Открыто мест</div><div class="value">${state.worldProgress.areas.length}</div></div><div class="metric"><div class="label">Предметов в мире</div><div class="value">${Object.keys(state.worldPlacements||{}).length}</div></div><div class="metric"><div class="label">${state.ageGroup==='7-11'?'Денег хватит?':'Состояние'}</div><div class="value compact-value">${h[0]}</div></div></div>${next?`<div class="card next-stage-detail"><b>Дальше: ${next.title}</b><p>${next.note}</p></div>`:''}</section>`;
   }
 
   function weekSummaryScreen() {
     const s=state.weekSummary;if(!s){route='home';return homeScreen();}
     const junior=state.ageGroup==='7-11';
-    return `<section class="screen week-screen summary-screen">${demoStrip()}<div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>Доп. доход</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?'':`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card development-result"><div class="development-result-head"><div><div class="eyebrow">Почему изменился питомец</div><h3>${petStage()}</h3></div><b>${s.development?.delta>0?'+':''}${s.development?.delta||0}</b></div><p>${esc(s.development?.reason||'Развитие рассчитывается по итогам всего игрового периода.')}</p></div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div>${demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)?'<div class="demo-final-actions"><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти демо заново</button></div>':'<button class="btn primary block" data-next-week>Перейти к новой неделе</button>'}</section>`;
+    return `<section class="screen week-screen summary-screen">${demoStrip()}<div class="week-kicker">Неделя ${s.week} завершена</div><h1>${junior?'Что изменилось':'Итоги недели'}</h1><p class="week-lead">${junior?'Посмотрим на монеты, питомца и комнату.':'Снимок того, как решения изменили деньги и мир.'}</p><div class="summary-balance"><span>Было</span><b>${fmt(s.startingBalance)} ●</b><span>Осталось</span><b>${fmt(s.endingBalance)} ●</b></div><div class="summary-grid"><div><span>${junior?'На нужное':'Необходимое'}</span><b>${fmt(s.actual.necessary)}</b></div><div><span>${junior?'На хотелки':'Желания'}</span><b>${fmt(s.actual.wants)}</b></div><div><span>${junior?'В копилку':'Отложил'}</span><b>${fmt(s.actual.savings)}</b></div><div><span>${junior?'Получил ещё':'Доп. доход'}</span><b>${fmt(s.actual.extraIncome)}</b></div></div>${s.actual.sideJobIncome>0?`<div class="work-income-summary"><span>Подработка</span><b>+${fmt(s.actual.sideJobIncome)} ●</b></div>`:''}${junior?`<div class="section-title"><h2>Как планировал → как получилось</h2></div>${planFactSummaryHtml(s)}`:`<div class="section-title"><h2>План → факт</h2></div>${planFactSummaryHtml(s)}`}<div class="section-title"><h2>Что изменила неделя</h2></div><div class="week-world-changes">${(s.worldChanges||[]).length?(s.worldChanges||[]).map(x=>`<div class="world-change">✦ <span>${x}</span></div>`).join(''):'<div class="world-change">○ <span>Мир не обязан меняться каждую неделю — крупные открытия требуют нескольких решений.</span></div>'}</div><div class="section-title"><h2>${junior?'Что можно заметить':'Наблюдения'}</h2></div><div class="insights">${s.insights.map(x=>`<div class="insight"><span>·</span><p>${x}</p></div>`).join('')}</div><div class="card development-result"><div class="development-result-head"><div><div class="eyebrow">${junior?'Почему вырос питомец':'Почему изменился питомец'}</div><h3>${petStage()}</h3></div><b>${s.development?.delta>0?'+':''}${s.development?.delta||0}</b></div><p>${esc(s.development?.reason||'Развитие рассчитывается по итогам всего игрового периода.')}</p></div><div class="card pet-week-result"><div>${petSVG()}</div><div><b>${esc(state.pet.name)}</b><p>Настроение ${Math.round(state.pet.mood)} · состояние ${petWellbeing()}</p><span>${s.petDelta.mood>=0?'Неделя дала достаточно приятных моментов.':'На этой неделе приятных активностей было меньше.'}</span></div></div>${demoMode&&state.wallet.week>=Number(state.demoSession?.targetPeriods||5)?'<div class="demo-final-actions"><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти демо заново</button></div>':'<button class="btn primary block" data-next-week>Перейти к новой неделе</button>'}</section>`;
   }
 
   function choicePreview(c,e) {
@@ -760,9 +787,9 @@
   }
   function feedbackHtml(f) {
     const lines=[];
-    if(f.balance!=null)lines.push(`<div><span>Баланс</span><b>${fmt(f.balance)} ●</b></div>`);
+    if(f.balance!=null)lines.push(`<div><span>${moneyLabel()}</span><b>${fmt(f.balance)} ●</b></div>`);
     if(f.petMood!=null)lines.push(`<div><span>Настроение</span><b>${f.petMood>0?'+':''}${f.petMood}</b></div>`);
-    if(f.goalDelay>0)lines.push(`<div><span>${state.ageGroup==='7-11'?'Большая цель':'Влияние на цель'}</span><b>≈ +${f.goalDelay} нед.</b></div>`);
+    if(f.goalDelay>0)lines.push(`<div><span>${isJunior()?'До покупки станет дольше':'Влияние на цель'}</span><b>≈ +${f.goalDelay} нед.</b></div>`);
     else if(f.reserve!=null)lines.push(`<div><span>${state.ageGroup==='7-11'?'Останется свободно':'Свободно'}</span><b>${fmt(f.reserve)} ●</b></div>`);
     else if(f.goalWeeks!=null)lines.push(`<div><span>До цели</span><b>≈ ${f.goalWeeks} нед.</b></div>`);
     return `<div class="feedback-grid">${lines.slice(0,3).join('')}</div>`;
@@ -806,13 +833,13 @@
   function quickAction(action) {
     const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,beforeSatiety=state.pet.satiety,beforeCare=state.pet.care;
     let title='',reason='',changed=false;
-    if(action==='feed'){if(spend(40,'Необходимые расходы','Еда','pet_care')){state.wallet.needsSpent+=40;state.stats.needsFirst++;adjustPet({satiety:24,mood:2});petBubble=state.ageGroup==='15-17'?'Еда закрыта':'Ммм, вкусно!';track('pet_need_completed',{need:'satiety'});title='Питомец поел';reason='Это обязательный расход: баланс уменьшился, а сытость питомца выросла.';changed=true;}}
-    else if(action==='care'){if(spend(60,'Необходимые расходы','Уход','pet_care')){state.wallet.needsSpent+=60;state.stats.needsFirst++;adjustPet({care:26,mood:2});petBubble=state.ageGroup==='15-17'?'Стало комфортнее':'Теперь гораздо лучше ✦';track('pet_need_completed',{need:'care'});title='Уход выполнен';reason='Это обязательный расход: монет стало меньше, а показатель ухода вырос.';changed=true;}}
-    else if(action==='play'){if(spend(80,'Желания',state.ageGroup==='15-17'?'Досуг':'Игра с питомцем','pet_play')){adjustPet({mood:18,energy:-8});petBubble=state.ageGroup==='15-17'?'Неплохой перерыв':'Ещё немного поиграем?';title='Поиграли вместе';reason='Это необязательный расход: настроение выросло, но свободных монет стало меньше.';changed=true;}}
+    if(action==='feed'){if(spend(40,'Необходимые расходы','Еда','pet_care')){state.wallet.needsSpent+=40;state.stats.needsFirst++;adjustPet({satiety:24,mood:2});petBubble=state.ageGroup==='15-17'?'Еда закрыта':'Ммм, вкусно!';track('pet_need_completed',{need:'satiety'});title='Питомец поел';reason=isJunior()?'Еда нужна питомцу. Монет стало меньше, а сытость выросла.':'Это обязательный расход: баланс уменьшился, а сытость питомца выросла.';changed=true;}}
+    else if(action==='care'){if(spend(60,'Необходимые расходы','Уход','pet_care')){state.wallet.needsSpent+=60;state.stats.needsFirst++;adjustPet({care:26,mood:2});petBubble=state.ageGroup==='15-17'?'Стало комфортнее':'Теперь гораздо лучше ✦';track('pet_need_completed',{need:'care'});title='Уход выполнен';reason=isJunior()?'Уход нужен питомцу. Монет стало меньше, а ему стало лучше.':'Это обязательный расход: монет стало меньше, а показатель ухода вырос.';changed=true;}}
+    else if(action==='play'){if(spend(80,'Желания',state.ageGroup==='15-17'?'Досуг':'Игра с питомцем','pet_play')){adjustPet({mood:18,energy:-8});petBubble=state.ageGroup==='15-17'?'Неплохой перерыв':'Ещё немного поиграем?';title='Поиграли вместе';reason=isJunior()?'Игра — это хотелка. Питомцу веселее, но монет стало меньше.':'Это необязательный расход: настроение выросло, но свободных монет стало меньше.';changed=true;}}
     else if(action==='sidejob'){if(state.difficultyMode!=='medium')return;route='sidejob';track('side_job_opened',{source:'quick_action'});render();return;}
     if(state.petWish&&action==='play')state.petWish=null; checkAchievements(); recalculateHealth(); save();
     if(changed){
-      const changes=[{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
+      const changes=[{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
       if(state.pet.mood!==beforeMood)changes.push({label:'Настроение',value:`${beforeMood} → ${state.pet.mood}`});
       if(state.pet.satiety!==beforeSatiety)changes.push({label:'Сытость',value:`${beforeSatiety} → ${state.pet.satiety}`});
       if(state.pet.care!==beforeCare)changes.push({label:'Уход',value:`${beforeCare} → ${state.pet.care}`});
@@ -829,13 +856,13 @@
       if(item.need){state.wallet.needsSpent+=item.price;state.stats.needsFirst++;} else if(item.price>beforeFree||(planForWeek()&&actualsForWeek().wants>planForWeek().wants)){state.stats.impulsePurchases++;track('impulse_purchase',{itemId:item.id,price:item.price});}
       const itemEffect={...(item.effect||{})};delete itemEffect.development;adjustPet(itemEffect);if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;petBubble=state.ageGroup==='15-17'?'Пространство изменилось':`${illustration(item.icon,item.name||item.label||item.id)} Теперь это здесь`;
       checkAchievements();recalculateHealth();recalculateWorldProgress();save();
-      const changes=[{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
+      const changes=[{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
       if(state.pet.mood!==beforeMood)changes.push({label:'Настроение',value:`${beforeMood} → ${state.pet.mood}`});
       if(delay>0)changes.push({label:'До цели',value:`примерно +${delay} нед.`});
       modal=buildFinancialFeedback(
         `Куплено: ${item.name}`,
         changes,
-        item.need?'Это обязательная покупка: она поддерживает состояние питомца и учитывается в плане необходимых расходов.':'Это необязательная покупка: она может порадовать питомца, но уменьшает сумму для других решений.',
+        isJunior()?(item.need?'Эта вещь нужна питомцу. Она помогает заботиться о нём.':'Это хотелка. Она может порадовать питомца, но монет на другие вещи станет меньше.'):(item.need?'Это обязательная покупка: она поддерживает состояние питомца и учитывается в плане необходимых расходов.':'Это необязательная покупка: она может порадовать питомца, но уменьшает сумму для других решений.'),
         [{label:'Продолжить',route:'shop'},{label:'Открыть бюджет',route:'budget'}]
       );
       track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
@@ -862,7 +889,7 @@
   function completeActiveGoal(g) {
     const target=goalTarget(g); if(state.wallet.savings<target||state.completedGoals.includes(g.id))return false;
     const goalName=goalView(g).name,goalIcon=goalView(g).icon;
-    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalName}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',title:goalName,message:changes[0]||'Цель изменила игровой мир и открыла новый этап.',icon:goalIcon,changes:[{label:'Цель',value:'достигнута'},{label:'Копилка',value:`${fmt(state.wallet.savings)} ●`}],reason:'Ты регулярно откладывал монеты и набрал нужную сумму. Рост питомца по-прежнему считается отдельно — по итогам всего периода.'}; return true;
+    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalName}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',title:goalName,message:changes[0]||(isJunior()?'Готово! Ты накопил нужную сумму.':'Цель изменила игровой мир и открыла новый этап.'),icon:goalIcon,changes:[{label:isJunior()?'На что копили':'Цель',value:isJunior()?'Готово':'достигнута'},{label:'В копилке',value:`${fmt(state.wallet.savings)} ●`}],reason:isJunior()?'Ты понемногу клал монеты в копилку и собрал нужную сумму.':'Ты регулярно откладывал монеты и набрал нужную сумму. Рост питомца считается отдельно — по итогам всей недели.'}; return true;
   }
   function saveAmount(n) {
     n=Math.round(Number(n)||0);if(n<=0||n>state.wallet.balance){toast('Проверь сумму');return;}
@@ -872,27 +899,37 @@
       const afterWeeks=weeksToGoal();
       modal=buildFinancialFeedback(
         `Отложено ${fmt(n)} монет`,
-        [{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:'Копилка',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},afterWeeks!=null?{label:'До цели',value:`≈ ${afterWeeks} нед.`}:null],
-        beforeWeeks!=null&&afterWeeks!=null&&afterWeeks<beforeWeeks?'Большая цель стала ближе.':'Монеты отделены от текущих трат и теперь лежат в копилке.',
-        [{label:'Продолжить',route:'savings'},{label:'Открыть бюджет',route:'budget'}]
+        [{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`},{label:'В копилке',value:`${fmt(beforeSavings)} → ${fmt(state.wallet.savings)} ●`},afterWeeks!=null?{label:isJunior()?'До покупки':'До цели',value:`≈ ${afterWeeks} нед.`}:null],
+        isJunior()?(beforeWeeks!=null&&afterWeeks!=null&&afterWeeks<beforeWeeks?`До ${esc(goalView()?.name||'покупки')} стало ближе.`:'Монеты теперь лежат в копилке.'):(beforeWeeks!=null&&afterWeeks!=null&&afterWeeks<beforeWeeks?'Большая цель стала ближе.':'Монеты отделены от текущих трат и теперь лежат в копилке.'),
+        [{label:'Продолжить',route:'savings'},{label:isJunior()?'Открыть монеты':'Открыть бюджет',route:'budget'}]
       );
     }
     render();
   }
   function selectGoal(id) {
-    const g=C.goals.find(x=>x.id===id);if(!g||state.completedGoals.includes(id))return;if(state.activeGoal&&state.activeGoal!==id&&state.wallet.savings>0){const ok=confirm('Деньги останутся в копилке и станут прогрессом новой цели. Сменить цель?');if(!ok)return;track('goal_delayed',{previousGoal:state.activeGoal,newGoal:id});}state.activeGoal=id;track('goal_selected',{goalId:id});save();modal=buildFinancialFeedback('Цель выбрана',[{label:'Цель',value:goalView(g).name},{label:'Стоимость',value:`${fmt(goalTarget(g))} ●`}],'Теперь каждое пополнение копилки будет показывать, насколько эта цель стала ближе.',[{label:'Продолжить',route:'goals'},{label:'Открыть копилку',route:'savings'}]);render();
+    const g=C.goals.find(x=>x.id===id);if(!g||state.completedGoals.includes(id))return;if(state.activeGoal&&state.activeGoal!==id&&state.wallet.savings>0){const ok=confirm('Деньги останутся в копилке и станут прогрессом новой цели. Сменить цель?');if(!ok)return;track('goal_delayed',{previousGoal:state.activeGoal,newGoal:id});}state.activeGoal=id;track('goal_selected',{goalId:id});save();const chosen=goalView(g);modal=buildFinancialFeedback(isJunior()?`Теперь копим на ${chosen.name}`:'Цель выбрана',[{label:isJunior()?'На что копим':'Цель',value:chosen.name},{label:isJunior()?'Нужно':'Стоимость',value:`${fmt(goalTarget(g))} ●`}],isJunior()?'Монеты из копилки теперь будут показывать, сколько осталось до этой покупки.':'Теперь каждое пополнение копилки будет показывать, насколько эта цель стала ближе.',[{label:'Продолжить',route:'goals'},{label:'Открыть копилку',route:'savings'}]);render();
   }
 
-  function eventImmediateText(e,c) {
-    if(c.future) return c.result || 'Решение принято. Пока ничего не списалось.';
-    if(e.mechanicType==='role') return c.result;
-    if(c.income&&c.save) return 'Часть денег появилась на балансе, часть сразу ушла в копилку.';
-    if(c.income) return 'Деньги появились на балансе.';
-    if(c.cost&&((c.pet?.mood||c.mood)>0)) return 'Покупка сделана. Настроение заметно изменилось.';
-    if(c.cost) return 'Расход прошёл. Новый остаток уже виден в бюджете.';
-    if(c.withdraw) return 'Деньги вернулись из копилки на баланс.';
-    if(c.goalTargetDelta) return 'Условия цели изменились. Новый срок пересчитан.';
-    return (c.result||'Решение принято.').split('. ').slice(0,1).join('. ') + (c.result?.includes('.')?'.':'');
+  function eventImmediateText(e,c){
+    if(isJunior()){
+      if(c.future)return c.result||'Решение сохранено. Что-то может измениться позже.';
+      if(c.income&&c.save)return 'Часть монет пришла на руки, а часть сразу ушла в копилку.';
+      if(c.income)return 'Монет стало больше.';
+      if(c.cost&&((c.pet?.mood||c.mood)>0))return 'Монет стало меньше, а настроение питомца изменилось.';
+      if(c.cost)return 'Монет стало меньше. Новый остаток уже виден.';
+      if(c.withdraw)return 'Монеты вернулись из копилки.';
+      if(c.goalTargetDelta)return 'До выбранной покупки теперь нужно накопить больше.';
+      return (c.result||'Готово.').split('. ').slice(0,1).join('. ')+(c.result?.includes('.')?'.':'');
+    }
+    if(c.future)return c.result||'Решение принято. Пока ничего не списалось.';
+    if(e.mechanicType==='role')return c.result;
+    if(c.income&&c.save)return 'Часть денег появилась на балансе, часть сразу ушла в копилку.';
+    if(c.income)return 'Деньги появились на балансе.';
+    if(c.cost&&((c.pet?.mood||c.mood)>0))return 'Покупка сделана. Настроение заметно изменилось.';
+    if(c.cost)return 'Расход прошёл. Новый остаток уже виден в бюджете.';
+    if(c.withdraw)return 'Деньги вернулись из копилки на баланс.';
+    if(c.goalTargetDelta)return 'Условия цели изменились. Новый срок пересчитан.';
+    return (c.result||'Решение принято.').split('. ').slice(0,1).join('. ')+(c.result?.includes('.')?'.':'');
   }
   function resolveEvent(i) {
     const e=C.events.find(x=>x.id===modal.id),c=e?.choices[i];if(!c)return;const beforeBalance=state.wallet.balance,beforeWeeks=weeksToGoal(),choiceDelay=c.cost&&c.kind!=='necessary'?purchaseGoalDelay(c.cost):0;
@@ -928,7 +965,7 @@
     const beforeBalance=state.wallet.balance;
     state.weekSummary=null;state.wallet.week++;state.wallet.day=1;state.wallet.nextIncomeIn=7;state.wallet.needsSpent=0;state.wallet.balance+=state.wallet.weeklyIncome;tx('income',state.wallet.weeklyIncome,'Доход',`Доход за неделю ${state.wallet.week}`,'weekly_income');state.weekOpeningCharges=[];state.dayActions={count:0,necessary:0,optional:0,income:0,sideJob:false};processDueObligations({showModal:false,opening:true});track('week_started',{week:state.wallet.week,income:state.wallet.weeklyIncome,automaticCharges:state.weekOpeningCharges.reduce((a,x)=>a+x.amount,0),available:state.wallet.balance});state.weekPlan=null;state.initialWeekPlan=null;state.weekSnapshot=null;state.weekNeedsPlanning=true;state.eventResolved=false;state.currentEventId=selectEventId();state.petWish=null;if(state.activityLimits.week!==state.wallet.week)state.activityLimits={week:state.wallet.week,sideJobs:0};state.workState={week:state.wallet.week,shiftsUsed:0,shiftsLimit:3,activityUsage:{}};state.workSession=null;recalculateWorldProgress();recalculateHealth();route='weekStart';
     if(demoMode){prepareDemoPeriod();modal={type:'demoPeriodIntro',period:state.wallet.week};}
-    else{modal=buildFinancialFeedback(`Новый период: неделя ${state.wallet.week}`,[{label:'Доход',value:`+${fmt(state.wallet.weeklyIncome)} ●`},{label:'Баланс',value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}],state.weekOpeningCharges.length?'Доход начислен, а обязательства из прошлых решений уже учтены в доступном балансе.':'Периодический игровой доход начислен. Теперь его нужно распределить до начала недели.',[{label:'Распределить бюджет',route:'weekStart'}]);}
+    else{modal=buildFinancialFeedback(`Новый период: неделя ${state.wallet.week}`,[{label:'Доход',value:`+${fmt(state.wallet.weeklyIncome)} ●`},{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}],state.weekOpeningCharges.length?'Доход начислен, а обязательства из прошлых решений уже учтены в доступном балансе.':'Периодический игровой доход начислен. Теперь его нужно распределить до начала недели.',[{label:'Распределить бюджет',route:'weekStart'}]);}
     save();render();window.scrollTo(0,0);return true;
   }
   function freshState() {
@@ -1012,37 +1049,37 @@
   }
 
   const DEMO_PERIODS = [
-    {id:'budget',title:'Бюджет на неделю',lead:'Покажем базовый цикл: план, цель, обязательные расходы и накопления.',steps:[
-      {id:'plan',label:'Распределите бюджет',route:'weekStart',hint:'Разложите монеты по четырём категориям и нажмите «Начать неделю».'},
-      {id:'goal',label:'Выберите финансовую цель',route:'goals',hint:'Откройте цели и выберите, на что хотите копить.'},
-      {id:'necessary',label:'Сделайте обязательную трату',route:'home',hint:'Покормите питомца или выполните уход. Это покажет разницу между «нужно» и «хочу».'},
+    {id:'budget',title:'План на неделю',lead:'Сначала разложим монеты, выберем, на что копить, позаботимся о питомце и положим часть в копилку.',steps:[
+      {id:'plan',label:'Разложите монеты',route:'weekStart',hint:'Разложите монеты по четырём категориям и нажмите «Начать неделю».'},
+      {id:'goal',label:'Выберите, на что копить',route:'goals',hint:'Откройте цели и выберите, на что хотите копить.'},
+      {id:'necessary',label:'Потратьте на нужное',route:'home',hint:'Покормите питомца или выполните уход. Это покажет разницу между «нужно» и «хочу».'},
       {id:'savings',label:'Отложите деньги',route:'savings',hint:'Положите часть монет в копилку и посмотрите, как изменится срок до цели.'},
       {id:'finish',label:'Посмотрите итог периода',route:'home',hint:'Теперь можно сравнить план и факт и увидеть, почему изменился питомец.'}
     ]},
-    {id:'needs-wants',title:'Хочу или нужно?',lead:'Сравним обязательную и необязательную трату и их влияние на бюджет.',steps:[
+    {id:'needs-wants',title:'Хочу или нужно?',lead:'Сначала потратим на то, что нужно питомцу, а потом — на хотелку.',steps:[
       {id:'plan',label:'Составьте новый план',route:'weekStart',hint:'Во втором периоде снова распределите доход, но оставьте место и для желаний.'},
-      {id:'necessary',label:'Сначала закройте важное',route:'home',hint:'Сделайте обязательную трату — например, покормите питомца.'},
-      {id:'optional',label:'Теперь выберите желание',route:'home',hint:'Поиграйте с питомцем или купите необязательную вещь. Сравните результат с обязательной тратой.'},
+      {id:'necessary',label:'Сначала сделайте нужное',route:'home',hint:'Сделайте обязательную трату — например, покормите питомца.'},
+      {id:'optional',label:'Теперь выберите хотелку',route:'home',hint:'Поиграйте с питомцем или купите необязательную вещь. Сравните результат с обязательной тратой.'},
       {id:'finish',label:'Сравните решения',route:'home',hint:'Завершите период и посмотрите, как две разные траты отразились на плане и факте.'}
     ]},
-    {id:'shortage',title:'Когда денег не хватает',lead:'После неожиданного расхода денег мало. Покажем отказ покупки и способ восстановить баланс.',steps:[
-      {id:'plan',label:'Спланируйте ограниченный бюджет',route:'weekStart',hint:'После неожиданного расхода доступно меньше обычного. Распределите оставшиеся монеты.'},
+    {id:'shortage',title:'Когда монет не хватает',lead:'Монет стало мало. Попробуем дорогую покупку и посмотрим, что предложит игра.',steps:[
+      {id:'plan',label:'Разложите оставшиеся монеты',route:'weekStart',hint:'После неожиданного расхода доступно меньше обычного. Распределите оставшиеся монеты.'},
       {id:'shortage',label:'Попробуйте дорогую покупку',route:'shop',hint:'Нажмите кнопку ниже. Мы специально покажем покупку, на которую сейчас не хватает денег.'},
-      {id:'task',label:'Получите дополнительный доход',route:'tasks',hint:'Выполните финансовое задание и получите игровую награду.'},
+      {id:'task',label:'Заработайте ещё монеты',route:'tasks',hint:'Выполните задание и получите ещё монеты.'},
       {id:'finish',label:'Посмотрите, что получилось',route:'home',hint:'Завершите период: приложение покажет, как ограниченный бюджет повлиял на результат.'}
     ]},
-    {id:'plan-fact',title:'План и факт',lead:'Покажем, почему первоначальный план нельзя переписать задним числом.',steps:[
-      {id:'plan',label:'Зафиксируйте план',route:'weekStart',hint:'Распределите доход. После подтверждения исходный план останется неизменным.'},
-      {id:'optional',label:'Сделайте незапланированное желание',route:'home',hint:'Потратьте немного на желание. Фактические траты начнут отличаться от плана.'},
-      {id:'savings',label:'Добавьте накопление',route:'savings',hint:'Отложите часть денег — это тоже попадёт в факт периода.'},
-      {id:'necessary',label:'Закройте обязательную трату',route:'home',hint:'Теперь сделайте обязательную трату и завершите финансовую картину недели.'},
-      {id:'finish',label:'Откройте сравнение план → факт',route:'home',hint:'Завершите период. Исходный план останется тем же, а рядом появится фактический результат.'}
+    {id:'plan-fact',title:'Как хотел → как получилось',lead:'Сначала составим план, потом потратим монеты и сравним результат.',steps:[
+      {id:'plan',label:'Составьте план',route:'weekStart',hint:'Распределите доход. После подтверждения исходный план останется неизменным.'},
+      {id:'optional',label:'Купите хотелку',route:'home',hint:'Потратьте немного на хотелку. Потом сравним это с планом.'},
+      {id:'savings',label:'Положите в копилку',route:'savings',hint:'Положите часть монет в копилку. Это тоже появится в итоге недели.'},
+      {id:'necessary',label:'Потратьте на нужное',route:'home',hint:'Теперь потратьте на то, что нужно питомцу.'},
+      {id:'finish',label:'Посмотрите, что получилось',route:'home',hint:'Закончите неделю. План останется тем же, а рядом будет видно, как получилось.'}
     ]},
-    {id:'growth',title:'Как растёт питомец',lead:'Финальный период: покажем, как серия решений за несколько недель влияет на развитие питомца.',steps:[
-      {id:'plan',label:'Составьте финальный план',route:'weekStart',hint:'Ещё раз распределите доход. Это последний период демонстрации.'},
-      {id:'necessary',label:'Позаботьтесь о важном',route:'home',hint:'Сделайте обязательную трату — она учитывается в итоговой оценке периода.'},
-      {id:'savings',label:'Продолжите накопления',route:'savings',hint:'Отложите деньги. Регулярность накоплений влияет на итоговый рост.'},
-      {id:'finish',label:'Посмотрите итог развития',route:'home',hint:'Завершите пятый период. После результата демо закончится и продолжить на шестую неделю будет нельзя.'}
+    {id:'growth',title:'Как растёт питомец',lead:'Последняя неделя покажет, как несколько недель решений помогают питомцу расти.',steps:[
+      {id:'plan',label:'Составьте план на последнюю неделю',route:'weekStart',hint:'Ещё раз разложите монеты. Это последняя неделя демо.'},
+      {id:'necessary',label:'Позаботьтесь о питомце',route:'home',hint:'Потратьте на то, что нужно питомцу.'},
+      {id:'savings',label:'Снова положите в копилку',route:'savings',hint:'Положите монеты в копилку. Если делать это каждую неделю, питомец растёт быстрее.'},
+      {id:'finish',label:'Посмотрите итог развития',route:'home',hint:'Закончите пятую неделю. После этого демо завершится.'}
     ]}
   ];
   function freshDemoState(petOverride = null) {
@@ -1129,7 +1166,7 @@
   }
   function currentDemoAction(step) {
     if(!step||step.done) return '';
-    if(step.id==='finish') return '<button class="btn primary demo-next-button" data-demo-complete>Завершить этот период</button>';
+    if(step.id==='finish') return '<button class="btn primary demo-next-button" data-demo-complete>Закончить эту неделю</button>';
     if(step.id==='shortage') return '<button class="btn primary demo-next-button" data-demo-shortage>Показать покупку без денег</button>';
     if(step.id==='necessary') return '<button class="btn primary demo-next-button" data-demo-direct="feed">Покормить питомца · 40 ●</button>';
     if(step.id==='optional') return '<button class="btn primary demo-next-button" data-demo-direct="play">Поиграть · 80 ●</button>';
@@ -1141,7 +1178,7 @@
     if(!demoMode) return '';
     const target=Number(state.demoSession?.targetPeriods||5),periodNumber=Math.min(target,Math.max(1,state.wallet.week)),guide=demoGuideState();
     const finalComplete=state.weekSummary&&state.wallet.week>=target;
-    return `<aside class="demo-director" aria-label="Сценарий демо-режима"><div class="demo-director-head"><div><span class="demo-word">DEMO</span><span>Период ${periodNumber} из ${target}</span></div><button class="demo-finish-link" data-demo-exit>Завершить демо</button></div><div class="demo-story"><span>Сценарий ${periodNumber}</span><h3>${esc(guide.period.title)}</h3><p>${esc(guide.period.lead)}</p></div><div class="demo-current"><div class="demo-current-count">Шаг ${Math.min(guide.completed+1,guide.total)} из ${guide.total}</div><strong>${finalComplete?'Демо завершено':esc(guide.current.label)}</strong><p>${finalComplete?'Пять разных сценариев пройдены. Дальше игра в демо не продолжается.':esc(guide.current.hint)}</p>${finalComplete?'<button class="btn primary demo-next-button" data-demo-exit>Завершить демо</button>':currentDemoAction(guide.current)}</div><div class="demo-progress" aria-label="Прогресс сценария">${guide.steps.map(x=>`<i class="${x.done?'done':x.id===guide.current.id?'current':''}" title="${esc(x.label)}"></i>`).join('')}</div><button class="demo-reset-link" data-demo-reset>Начать демо заново</button></aside>`;
+    return `<aside class="demo-director" aria-label="Сценарий демо-режима"><div class="demo-director-head"><div><span class="demo-word">DEMO</span><span>Неделя ${periodNumber} из ${target}</span></div><button class="demo-finish-link" data-demo-exit>Завершить демо</button></div><div class="demo-story"><span>Что попробуем</span><h3>${esc(guide.period.title)}</h3><p>${esc(guide.period.lead)}</p></div><div class="demo-current"><div class="demo-current-count">Шаг ${Math.min(guide.completed+1,guide.total)} из ${guide.total}</div><strong>${finalComplete?'Демо завершено':esc(guide.current.label)}</strong><p>${finalComplete?'Пять недель пройдены. Дальше демо не продолжается.':esc(guide.current.hint)}</p>${finalComplete?'<button class="btn primary demo-next-button" data-demo-exit>Завершить демо</button>':currentDemoAction(guide.current)}</div><div class="demo-progress" aria-label="Прогресс сценария">${guide.steps.map(x=>`<i class="${x.done?'done':x.id===guide.current.id?'current':''}" title="${esc(x.label)}"></i>`).join('')}</div><button class="demo-reset-link" data-demo-reset>Начать демо заново</button></aside>`;
   }
 
   function petSVG(type=state.pet.type,color=state.pet.color,accessory=state.pet.accessory) {
@@ -1183,9 +1220,9 @@
     return `<svg class="learning-art" viewBox="0 0 220 150" aria-hidden="true"><path d="M34 113c19-42 51-72 88-68 31 3 46 28 62 67" fill="#e7eadc"/><path d="M30 116h160" stroke="#bdc5b2" stroke-width="3" stroke-linecap="round"/><g fill="#fffdf8" stroke="${accent}" stroke-width="4"><path d="M52 72h50l-5 47H57z"/><path d="M62 72c0-17 28-17 28 0" fill="none"/>${extra}</g><circle cx="77" cy="91" r="8" fill="${accent}"/><path d="M46 126c22 7 45 7 68 0M126 126c17 5 35 5 52 0" stroke="#c99971" stroke-width="3" stroke-linecap="round"/></svg>`;
   }
 
-  function renderNav() {
+  function renderNav(){
     if(['weekStart','weekSummary','help','adultGate','adult'].includes(route))return '';
-    const nav=[['home','⌂','Дом'],['tasks','◫','Задания'],['budget','◒','Бюджет'],['goals','◎','Цели'],['profile','○','Профиль']];
+    const easy=isJunior(),nav=[['home','⌂','Дом'],['tasks','◫','Задания'],['budget','◒',easy?'Монеты':'Бюджет'],['goals','◎',easy?'Копим':'Цели'],['profile','○','Профиль']];
     return `<nav class="nav" aria-label="Основная навигация">${nav.map(([r,i,l])=>`<button data-route="${r}" class="${route===r?'active':''}" ${route===r?'aria-current="page"':''}>${illustration(({home:'🏠',tasks:'📖',budget:'💰',goals:'🪙',profile:'profile'})[r])}${l}</button>`).join('')}</nav>`;
   }
 
@@ -1211,15 +1248,15 @@
   function finishIntroReplay(skipped){track(skipped?'intro_skipped':'intro_completed',{replay:true,step:introReplayStep});save();introReplay=false;introReplayStep=0;route='help';render();}
 
   function activeTaskForAge(){return ageTaskList().find(t=>!state.completedTasks.includes(t.id))||null;}
-  function savingsScreen() {
-    const g=goalView(),saved=state.wallet.savings,amounts=[50,100,saved].filter((n,i,a)=>n>0&&n<=saved&&a.indexOf(n)===i);
+  function savingsScreen(){
+    const g=goalView(),saved=state.wallet.savings,amounts=[50,100,saved].filter((n,i,a)=>n>0&&n<=saved&&a.indexOf(n)===i),junior=isJunior(),remain=g?Math.max(0,goalTarget()-saved):null,pace=Math.max(50,savingsTempo()),weeks=g?weeksToGoal():null;
+    if(junior)return `<section class="screen">${topbar('Копилка',true)}<div class="savings-visual">${learningArtwork('savings')}</div><div class="card savings-hero"><div class="muted">В копилке</div><div class="big-money">${fmt(saved)} ●</div>${g?`<h3>Копим на ${esc(g.name)}</h3><p>До ${esc(g.name)} осталось ${fmt(remain)} монет.</p><div class="bar green" style="height:10px;margin-top:16px"><i style="width:${progressPct()}%"></i></div><p class="subtle">Если откладывать примерно по ${fmt(pace)} монет, понадобится около ${weeks} нед.</p>`:'<p class="subtle">Пока не выбрали, на что копить. Это можно сделать позже.</p>'}</div><div class="section-title"><h2>Положить в копилку</h2></div><div class="save-controls">${[50,100,200].map(n=>`<button data-save="${n}">+${n}</button>`).join('')}</div><div class="save-custom"><input type="number" min="1" inputmode="numeric" placeholder="Другая сумма" id="saveAmount"><button class="btn primary" data-save-custom>Положить</button></div>${saved>0?`<div class="section-title"><h2>Взять из копилки</h2></div><div class="withdraw-options">${amounts.map(n=>`<button class="btn secondary" data-withdraw="${n}">${n===saved?'Всё':fmt(n)+' ●'}</button>`).join('')}</div>`:''}<p class="subtle">Перед тем как взять монеты, покажем, как изменится путь до покупки.</p></section>`;
     return `<section class="screen">${topbar('Копилка',true)}<div class="savings-visual">${learningArtwork('savings')}</div><div class="card savings-hero"><div class="big-money">${fmt(saved)}</div><div class="muted">монет отложено${g?` на «${esc(g.name)}»`:''}</div>${g?`<div class="bar green" style="height:10px;margin-top:16px"><i style="width:${progressPct()}%"></i></div><p class="subtle">${fmt(saved)} из ${fmt(goalTarget())} · ${progressPct()}% · ≈ ${weeksToGoal()} нед.</p>`:'<p class="subtle">Можно копить без выбранной цели и выбрать её позже.</p>'}</div><div class="section-title"><h2>Отложить монеты</h2></div><div class="save-controls">${[50,100,200].map(n=>`<button data-save="${n}">+${n}</button>`).join('')}</div><div class="save-custom"><input type="number" min="1" inputmode="numeric" placeholder="Другая сумма" id="saveAmount"><button class="btn primary" data-save-custom>Отложить</button></div>${saved>0?`<div class="section-title"><h2>Вернуть на баланс</h2></div><div class="withdraw-options">${amounts.map(n=>`<button class="btn secondary" data-withdraw="${n}">${n===saved?'Всю сумму':fmt(n)+' ●'}</button>`).join('')}</div>`:''}<p class="subtle">Перед возвратом приложение покажет новый остаток и примерный срок цели.</p></section>`;
   }
-
   function completedLearningTopics() {
     return C.tasks.filter(t=>state.completedTasks.includes(t.id)).map(t=>t.topic||t.learningOutcome||t.title).filter((x,i,a)=>a.indexOf(x)===i);
   }
-  function taskTypeLabel(type){return ({allocation:'Распредели бюджет',subscriptions:'Найди лишнее',goal_slider:'Что изменится?',compare:'Сравни предложения',role:'Смена роли',safety:'Безопасность в интернете'}[type]||'Финансовая ситуация');}
+  function taskTypeLabel(type){const easy={allocation:'Разложи монеты',subscriptions:'Найди лишнее',goal_slider:'Что изменится?',compare:'Сравни варианты',role:'Попробуй роль',safety:'Безопасность в интернете'};const medium={allocation:'Распредели бюджет',subscriptions:'Найди лишнее',goal_slider:'Что изменится?',compare:'Сравни предложения',role:'Смена роли',safety:'Безопасность в интернете'};return (isJunior()?easy:medium)[type]||(isJunior()?'Задача про деньги':'Финансовая ситуация');}
 
   function purchasePreview(id) {
     const item=C.items.find(x=>x.id===id);if(!item)return null;const enough=state.wallet.balance>=item.price,after=state.wallet.balance-item.price,delay=item.need?0:purchaseGoalDelay(item.price);return {item,enough,after,missing:Math.max(0,-after),delay,category:item.need?'Нужно':'Желание'};
@@ -1236,30 +1273,32 @@
   function renderModal() {
     if(modal.type==='demoPeriodIntro'){
       const n=Math.max(1,Math.min(DEMO_PERIODS.length,Number(modal.period||state.wallet.week))),p=DEMO_PERIODS[n-1];
-      return `<div class="overlay"><div class="sheet demo-period-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">DEMO · период ${n} из ${DEMO_PERIODS.length}</div><h2>${esc(p.title)}</h2><p>${esc(p.lead)}</p><div class="demo-period-roadmap">${p.steps.map((s,i)=>`<div><span>${i+1}</span><b>${esc(s.label)}</b></div>`).join('')}</div><button class="btn primary block" data-close-modal>Начать период</button>${n>1?'<button class="demo-finish-link block-link" data-demo-exit>Завершить демо сейчас</button>':''}</div></div>`;
+      return `<div class="overlay"><div class="sheet demo-period-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">DEMO · неделя ${n} из ${DEMO_PERIODS.length}</div><h2>${esc(p.title)}</h2><p>${esc(p.lead)}</p><div class="demo-period-roadmap">${p.steps.map((s,i)=>`<div><span>${i+1}</span><b>${esc(s.label)}</b></div>`).join('')}</div><button class="btn primary block" data-close-modal>Начать неделю</button>${n>1?'<button class="demo-finish-link block-link" data-demo-exit>Завершить демо сейчас</button>':''}</div></div>`;
     }
     if(modal.type==='demoFinished'){
       const growth=state.pet.development-8;
-      return `<div class="overlay"><div class="sheet demo-finished-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">Демонстрация завершена</div><h2>5 периодов пройдено</h2><p>Вы посмотрели планирование, обязательные и необязательные расходы, нехватку денег, план → факт, накопления и развитие питомца.</p><div class="demo-finish-metrics"><div><span>Периодов</span><b>5 / 5</b></div><div><span>Развитие питомца</span><b>${growth>=0?'+':''}${growth}</b></div></div><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти заново</button></div></div>`;
+      return `<div class="overlay"><div class="sheet demo-finished-sheet"><div class="sheet-handle"></div><div class="demo-modal-kicker">Демонстрация завершена</div><h2>5 недель пройдено</h2><p>Вы посмотрели план на неделю, нужные траты, хотелки, нехватку монет, копилку и рост питомца.</p><div class="demo-finish-metrics"><div><span>Недель</span><b>5 / 5</b></div><div><span>Развитие питомца</span><b>${growth>=0?'+':''}${growth}</b></div></div><button class="btn primary block" data-demo-exit>Завершить демо</button><button class="btn secondary block" data-demo-reset>Пройти заново</button></div></div>`;
     }
     if(modal.type==='purchaseConfirm'){
       const p=purchasePreview(modal.itemId);if(!p)return '';
       const effect=p.item.effect?.mood?`Настроение ${p.item.effect.mood>0?'+':''}${p.item.effect.mood}`:p.item.effect?.satiety?`Сытость +${p.item.effect.satiety}`:p.item.effect?.care?`Уход +${p.item.effect.care}`:p.delay>0?`Цель примерно на ${p.delay} нед. дальше`:'Мир питомца изменится';
-      const actions=p.enough?`<div class="grid2"><button class="btn primary" data-confirm-buy="${p.item.id}">Купить</button><button class="btn secondary" data-purchase-cancel>Не сейчас</button></div>`:`<div class="feedback-section shortage-feedback"><h3>Что изменилось</h3><p>Покупка не выполнена.</p></div><div class="feedback-section"><h3>Почему</h3><p>Не хватает ${fmt(p.missing)} монет. Накопления не снимаются автоматически.</p></div><div class="feedback-section"><h3>Что дальше</h3><div class="insufficient-actions"><button class="btn secondary" data-purchase-cancel>Вернуться</button><button class="btn secondary" data-modal-route="tasks">Открыть задания</button>${state.ageGroup==='15-17'?'<button class="btn secondary" data-modal-route="sidejob">Открыть подработку</button>':''}</div></div>`;
-      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art">${illustration(p.item.icon,p.item.name||p.item.id)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>Баланс после</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>Влияние</span><b>${esc(effect)}</b></div></div>${actions}</div></div>`;
+      const actions=p.enough?`<div class="grid2"><button class="btn primary" data-confirm-buy="${p.item.id}">Купить</button><button class="btn secondary" data-purchase-cancel>Не сейчас</button></div>`:`<div class="feedback-section shortage-feedback"><h3>Что изменилось</h3><p>Покупка не выполнена.</p></div><div class="feedback-section"><h3>Почему</h3><p>${isJunior()?`Не хватает ${fmt(p.missing)} монет. Монеты из копилки сами не берутся.`:`Не хватает ${fmt(p.missing)} монет. Накопления не снимаются автоматически.`}</p></div><div class="feedback-section"><h3>Что дальше</h3><div class="insufficient-actions"><button class="btn secondary" data-purchase-cancel>Вернуться</button><button class="btn secondary" data-modal-route="tasks">Открыть задания</button>${state.ageGroup==='15-17'?'<button class="btn secondary" data-modal-route="sidejob">Открыть подработку</button>':''}</div></div>`;
+      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art">${illustration(p.item.icon,p.item.name||p.item.id)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>${isJunior()?'После покупки':'Баланс после'}</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>${isJunior()?'Что изменится':'Влияние'}</span><b>${esc(effect)}</b></div></div>${actions}</div></div>`;
     }
     if(modal.type==='withdrawalPreview'){
-      const p=withdrawalPreview(modal.amount);return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="preview-illustration">${learningArtwork('savings')}</div><div class="eyebrow">До операции</div><h2>Вернуть ${fmt(p.amount)} монет?</h2><div class="confirmation-facts four"><div><span>В копилке</span><b>${fmt(p.before)} → ${fmt(p.after)}</b></div><div><span>До цели останется</span><b>${p.remaining==null?'Цель не выбрана':fmt(p.remaining)+' ●'}</b></div><div><span>Срок был</span><b>${p.beforeWeeks==null?'—':`≈ ${p.beforeWeeks} нед.`}</b></div><div><span>Срок станет</span><b>${p.afterWeeks==null?'—':`≈ ${p.afterWeeks} нед.`}</b></div></div><div class="grid2"><button class="btn primary" data-confirm-withdraw="${p.amount}">Вернуть на баланс</button><button class="btn secondary" data-withdraw-cancel>Оставить в копилке</button></div></div></div>`;
+      const p=withdrawalPreview(modal.amount),g=goalView();
+      if(isJunior())return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="preview-illustration">${learningArtwork('savings')}</div><div class="eyebrow">Копилка</div><h2>Хочешь взять ${fmt(p.amount)} монет?</h2><div class="confirmation-facts four"><div><span>В копилке</span><b>${fmt(p.before)} → ${fmt(p.after)}</b></div><div><span>${g?`До ${esc(g.name)} останется`:'До покупки'}</span><b>${p.remaining==null?'Сначала выбери, на что копить':fmt(p.remaining)+' ●'}</b></div><div><span>Было</span><b>${p.beforeWeeks==null?'—':`≈ ${p.beforeWeeks} нед.`}</b></div><div><span>Станет</span><b>${p.afterWeeks==null?'—':`≈ ${p.afterWeeks} нед.`}</b></div></div><div class="grid2"><button class="btn primary" data-confirm-withdraw="${p.amount}">Взять ${fmt(p.amount)}</button><button class="btn secondary" data-withdraw-cancel>Оставить</button></div></div></div>`;
+      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="preview-illustration">${learningArtwork('savings')}</div><div class="eyebrow">До операции</div><h2>Вернуть ${fmt(p.amount)} монет?</h2><div class="confirmation-facts four"><div><span>В копилке</span><b>${fmt(p.before)} → ${fmt(p.after)}</b></div><div><span>До цели останется</span><b>${p.remaining==null?'Цель не выбрана':fmt(p.remaining)+' ●'}</b></div><div><span>Срок был</span><b>${p.beforeWeeks==null?'—':`≈ ${p.beforeWeeks} нед.`}</b></div><div><span>Срок станет</span><b>${p.afterWeeks==null?'—':`≈ ${p.afterWeeks} нед.`}</b></div></div><div class="grid2"><button class="btn primary" data-confirm-withdraw="${p.amount}">Вернуть на баланс</button><button class="btn secondary" data-withdraw-cancel>Оставить в копилке</button></div></div></div>`;
     }
     if(modal.type==='resetConfirm')return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">Подтверждение</div><h2>Удалить локальный профиль?</h2><p>Будут удалены баланс, копилка, цели, покупки, прогресс, задания и история недель на этом устройстве.</p><div class="grid2"><button class="btn danger-button" data-confirm-reset>Удалить</button><button class="btn secondary" data-close-modal>Отмена</button></div></div></div>`;
     if(modal.type==='event'){const e=C.events.find(x=>x.id===modal.id);if(!e)return '';return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">${e.categoryLabel||'Событие'}</div><h2>${e.title}</h2><p>${e.situation||e.text}</p><div class="stack">${e.choices.map((c,i)=>`<button class="choice event-choice" data-event-choice="${i}"><b>${c.text}</b>${choicePreview(c,e)}</button>`).join('')}</div></div></div>`;}
     if(modal.type==='eventResult')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${modal.title||'Последствие'}</h2><div class="feedback-section"><h3>Что изменилось</h3>${modal.feedback?feedbackHtml(modal.feedback):'<p>Решение сохранено.</p>'}</div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.result||'Это последствие выбранного решения.')}</p></div><div class="feedback-section"><h3>Что дальше</h3><button class="btn primary block" data-close-modal>Продолжить</button></div></div></div>`;
     if(modal.type==='delayedImpact'){const total=modal.charges.reduce((s,c)=>s+(c.paid||0),0);return `<div class="overlay"><div class="sheet delayed-sheet"><div class="sheet-handle"></div><div class="eyebrow">Произошло автоматически</div><h2>−${fmt(total)} монет</h2><div class="delayed-list">${modal.charges.map(c=>`<div><span>${esc(c.description)}</span><b>−${fmt(c.paid||0)}</b></div>`).join('')}</div><p class="subtle">Это последствие решения из прошлых игровых дней или недель.</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;}
-    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Большая цель</div><h2>${esc(modal.title)}</h2><div class="unlock-visual">${modal.icon||'✦'}</div><div class="feedback-section"><h3>Что изменилось</h3><div class="feedback-change-list">${(modal.changes||[]).map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div></div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.reason||modal.message)}</p></div><div class="feedback-section"><h3>Что дальше</h3><p>${esc(modal.message)}</p><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div></div>`;
+    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">${isJunior()?'Мы накопили!':'Большая цель'}</div><h2>${esc(modal.title)}</h2><div class="unlock-visual">${modal.icon||'✦'}</div><div class="feedback-section"><h3>Что изменилось</h3><div class="feedback-change-list">${(modal.changes||[]).map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div></div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.reason||modal.message)}</p></div><div class="feedback-section"><h3>Что дальше</h3><p>${esc(modal.message)}</p><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div></div>`;
     if(modal.type==='financialFeedback')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${esc(modal.title)}</h2>${financialFeedbackHtml(modal)}</div></div>`;
-    if(modal.type==='saveFirst'){const n=Math.min(modal.amount||200,state.wallet.balance);return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Перед неделей</div><h2>${state.ageGroup==='7-11'?'Сразу положить в копилку?':'Отложить сначала?'}</h2><p>Это не обязательно. Можно оставить деньги свободными и решить позже.</p><div class="grid2"><button class="btn good" data-save="${n}">Отложить ${fmt(n)}</button><button class="btn secondary" data-close-modal>Не сейчас</button></div></div></div>`;}
+    if(modal.type==='saveFirst'){const n=Math.min(modal.amount||200,state.wallet.balance);return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Перед неделей</div><h2>${state.ageGroup==='7-11'?'Сразу положить в копилку?':'Отложить сначала?'}</h2><p>${isJunior()?'Не обязательно. Можно оставить монеты и решить позже.':'Это не обязательно. Можно оставить деньги свободными и решить позже.'}</p><div class="grid2"><button class="btn good" data-save="${n}">${isJunior()?'Положить':'Отложить'} ${fmt(n)}</button><button class="btn secondary" data-close-modal>Не сейчас</button></div></div></div>`;}
     if(modal.type==='workComplete')return `<div class="overlay"><div class="sheet work-complete-sheet"><div class="sheet-handle"></div><div class="eyebrow">Смена завершена</div><h2>+${fmt(modal.reward)} монет</h2><div class="feedback-grid"><div><span>Энергия</span><b>−${fmt(modal.energyCost)}</b></div><div><span>Баланс</span><b>${fmt(modal.balance)} ●</b></div><div><span>Осталось энергии</span><b>${Math.round(modal.energy)}⚡</b></div></div><p class="subtle">Деньги уже в обычном кошельке. Дальше решаешь сам: потратить, оставить или отложить.</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;
-    if(modal.type==='dayConfirm')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>Завершить день?</h2><p>Можно ничего не покупать. Потребности немного изменятся просто потому, что игровой день прошёл.</p><div class="grid2"><button class="btn primary" data-confirm-day>Завершить</button><button class="btn secondary" data-close-modal>Вернуться</button></div></div></div>`;
+    if(modal.type==='dayConfirm')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>Завершить день?</h2><p>${isJunior()?'Можно ничего не покупать. Просто пройдёт ещё один игровой день.':'Можно ничего не покупать. Потребности немного изменятся просто потому, что игровой день прошёл.'}</p><div class="grid2"><button class="btn primary" data-confirm-day>Завершить</button><button class="btn secondary" data-close-modal>Вернуться</button></div></div></div>`;
     return '';
   }
 
@@ -1317,7 +1356,7 @@
     if(name==='income_received'&&props.amount) showMotionFeedback('+'+fmt(props.amount),'income');
     else if(name==='expense_completed'&&props.amount) showMotionFeedback('−'+fmt(props.amount),'expense');
     else if(name==='savings_deposit'&&props.amount) showMotionFeedback('+'+fmt(props.amount)+' в копилку','saving');
-    else if(name==='goal_completed') showMotionFeedback('Цель достигнута','goal');
+    else if(name==='goal_completed') showMotionFeedback(isJunior()?'Накопили!':'Цель достигнута','goal');
   }
 
   function motionEnabled(){
@@ -1431,9 +1470,9 @@
   function homeScreen(){
     const g=goalView(),baseGoal=activeGoal(),event=currentEvent(),h=healthText(),task=activeTaskForAge(),easy=state.difficultyMode==='easy',medium=state.difficultyMode==='medium';
     return `<section class="screen home-screen">${topbar('Дом')}${worldSceneHtml()}<div class="pet-status-line"><b>${petStage()}</b><span>${petWellbeing()>=70?'в хорошем состоянии':petWellbeing()>=50?'в норме':'нужно немного внимания'}</span></div><div class="stat-row">${miniStat(easy?'Сыт':'Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat(easy?'Чисто':'Уход',state.pet.care,'✦')}</div>
-      <div class="money-strip home-money"><div><span>${easy?'Монеты':'Баланс'}</span><b>${fmt(state.wallet.balance)} ●</b></div><button data-savings><span>В копилке</span><b>${fmt(state.wallet.savings)} ●</b></button><div><span>До дохода</span><b>${state.wallet.nextIncomeIn} дн.</b></div><div><span>${easy?'Хватит?':'Состояние'}</span><b>${h[0]}</b></div></div>
-      ${g?`<div class="section-title compact-title"><h2>${easy?'Коплю на':'Текущая цель'}</h2><button data-route="goals">Открыть</button></div><div class="card goal-card compact-card"><div class="goal-icon">${illustration(g.icon,g.name||g.label||g.id)}</div><div><h3>${esc(g.name)}</h3><p>${fmt(goalSaved())} из ${fmt(goalTarget(baseGoal))} · ≈ ${weeksToGoal()} нед.</p><div class="bar green"><i style="width:${progressPct()}%"></i></div></div><div class="goal-progress">${progressPct()}%</div></div>`:`<div class="section-title compact-title"><h2>${easy?'На что будем копить?':'Текущая цель'}</h2></div><button class="btn secondary block" data-route="goals">Выбрать цель</button>`}
-      <div class="section-title compact-title"><h2>Активное задание</h2><button data-route="tasks">Все</button></div>${task?`<div class="active-task-card"><div class="active-task-art">${learningArtwork(task.cyberSafety?'help':'needs')}</div><div><span>${taskTypeLabel(task.mechanicType)}</span><h3>${esc(task.title)}</h3><p>Награда +${fmt(task.reward)} ●</p></div><button class="btn secondary" data-open-task="${task.id}">Начать</button></div>`:`<div class="empty-state small-empty">${learningArtwork('savings')}<div><b>Все доступные задания выполнены</b><button class="linkbtn" data-route="tasks">Открыть список</button></div></div>`}
+      <div class="money-strip home-money"><div><span>${easy?'Монеты':'Баланс'}</span><b>${fmt(state.wallet.balance)} ●</b></div><button data-savings><span>В копилке</span><b>${fmt(state.wallet.savings)} ●</b></button><div><span>${easy?'До новых монет':'До дохода'}</span><b>${state.wallet.nextIncomeIn} дн.</b></div><div><span>${easy?'Хватит?':'Состояние'}</span><b>${h[0]}</b></div></div>
+      ${g?`<div class="section-title compact-title"><h2>${easy?'Коплю на':'Текущая цель'}</h2><button data-route="goals">Открыть</button></div><div class="card goal-card compact-card"><div class="goal-icon">${illustration(g.icon,g.name||g.label||g.id)}</div><div><h3>${esc(g.name)}</h3><p>${fmt(goalSaved())} из ${fmt(goalTarget(baseGoal))} · ≈ ${weeksToGoal()} нед.</p><div class="bar green"><i style="width:${progressPct()}%"></i></div></div><div class="goal-progress">${progressPct()}%</div></div>`:`<div class="section-title compact-title"><h2>${easy?'На что будем копить?':'Текущая цель'}</h2></div><button class="btn secondary block" data-route="goals">${easy?'Выбрать, на что копить':'Выбрать цель'}</button>`}
+      <div class="section-title compact-title"><h2>${easy?'Задание':'Активное задание'}</h2><button data-route="tasks">Все</button></div>${task?`<div class="active-task-card"><div class="active-task-art">${learningArtwork(task.cyberSafety?'help':'needs')}</div><div><span>${taskTypeLabel(task.mechanicType)}</span><h3>${esc(task.title)}</h3><p>${easy?'Получишь':'Награда'} +${fmt(task.reward)} ●</p></div><button class="btn secondary" data-open-task="${task.id}">Начать</button></div>`:`<div class="empty-state small-empty">${learningArtwork('savings')}<div><b>Все доступные задания выполнены</b><button class="linkbtn" data-route="tasks">Открыть список</button></div></div>`}
       <div class="section-title compact-title"><h2>${easy?'Что случилось':'Текущая ситуация'}</h2><span class="soft-label">${event?.categoryLabel||'событие'}</span></div>${eventTeaser()}
       <div class="section-title"><h2>Что сделать?</h2></div><div class="quick-actions"><button class="action" data-action="feed"><span class="ico">${illustration('🥣')}</span><b>Покормить</b><small>40 ●</small></button><button class="action" data-action="play"><span class="ico">${illustration('⚽')}</span><b>Поиграть</b><small>80 ●</small></button><button class="action" data-action="care"><span class="ico">${illustration('🫧')}</span><b>Уход</b><small>60 ●</small></button><button class="action" data-route="shop"><span class="ico">${illustration('','shop')}</span><b>Магазин</b><small>выбрать</small></button></div>${medium?`<button class="work-entry" data-route="sidejob"><span class="work-entry-icon">${illustration('◇')}</span><span><b>${state.workSession?'Продолжить смену':'Подработка'}</b><small>${workShiftStatusShort()} · дополнительный доход</small></span><span aria-hidden="true">›</span></button>`:''}${wishHtml()}${worldProgressCard()}<button class="btn primary block end-day" data-new-day>Завершить день ${state.wallet.day}</button></section>`;
   }
@@ -1444,9 +1483,9 @@
 
   function budgetScreen(){
     state.stats.budgetViews++;recalculateHealth();checkAchievements();save();const reserve=needsReserve(),free=freeMoney(),h=healthText(),plan=planForWeek(),actual=actualsForWeek();
-    if(state.difficultyMode==='easy') return `<section class="screen">${topbar('Мои монеты')}<div class="junior-budget"><div class="junior-money-card"><span>Сейчас</span><b>${fmt(state.wallet.balance)} ●</b></div><div class="junior-money-card"><span>Коплю</span><b>${fmt(state.wallet.savings)} ●</b></div><div class="junior-money-card"><span>Нужно оставить</span><b>≈ ${fmt(reserve)} ●</b></div><div class="junior-money-card"><span>До следующей недели</span><b>${state.wallet.nextIncomeIn} дн.</b></div></div><div class="card junior-health"><b>${h[0]}</b><p>${h[1]}</p></div><div class="section-title"><h2>Как разложили</h2><span class="soft-label">План подтверждён</span></div>${plan?`<div class="card simple-buckets"><span>Нужно <b>${fmt(plan.necessary)}</b></span><span>Хочу <b>${fmt(plan.wants)}</b></span><span>Коплю <b>${fmt(plan.savings)}</b></span><span>Оставлю <b>${fmt(plan.reserve)}</b></span></div>`:'<div class="need-note">Сначала разложи монеты в начале недели.</div>'}<div class="section-title"><h2>Что происходило</h2></div><div class="card history">${historyHtml()}</div></section>`;
+    if(state.difficultyMode==='easy') return `<section class="screen">${topbar('Мои монеты')}<div class="junior-budget"><div class="junior-money-card"><span>Монет осталось</span><b>${fmt(state.wallet.balance)} ●</b></div><div class="junior-money-card"><span>В копилке</span><b>${fmt(state.wallet.savings)} ●</b></div><div class="junior-money-card"><span>На важное ещё</span><b>≈ ${fmt(reserve)} ●</b></div><div class="junior-money-card"><span>До следующей недели</span><b>${state.wallet.nextIncomeIn} дн.</b></div></div><div class="card junior-health"><b>${h[0]}</b><p>${h[1]}</p></div><div class="section-title"><h2>Как разложили</h2><span class="soft-label">${isJunior()?'План готов':'План подтверждён'}</span></div>${plan?`<div class="card simple-buckets"><span>Нужно <b>${fmt(plan.necessary)}</b></span><span>Хочу <b>${fmt(plan.wants)}</b></span><span>Коплю <b>${fmt(plan.savings)}</b></span><span>Оставлю <b>${fmt(plan.reserve)}</b></span></div>`:'<div class="need-note">Сначала разложи монеты в начале недели.</div>'}<div class="section-title"><h2>Что происходило</h2></div><div class="card history">${historyHtml()}</div></section>`;
     const obligations=(state.futureObligations||[]).filter(o=>o.dueWeek<=state.wallet.week+2).sort((a,b)=>a.dueWeek-b.dueWeek||a.dueDay-b.dueDay);
-    return `<section class="screen">${topbar('Мой бюджет')}<div class="metric-grid"><div class="metric"><div class="label">Баланс</div><div class="value">${fmt(state.wallet.balance)}</div></div><div class="metric"><div class="label">До дохода</div><div class="value">${state.wallet.nextIncomeIn} дн.</div></div><div class="metric"><div class="label">Нужно предусмотреть</div><div class="value money-orange">${fmt(reserve)}</div></div><div class="metric"><div class="label">Свободно сейчас</div><div class="value money-green">${fmt(free)}</div></div></div><div class="section-title"><h2>Состояние бюджета</h2></div><div class="card health-card"><div class="health-dot ${state.financialHealth>=62?'stable':state.financialHealth>=45?'caution':'risk'}"></div><div><h3>${h[0]}</h3><p>${h[1]}</p></div></div>${obligations.length?`<div class="section-title"><h2>Будущие списания</h2></div><div class="card obligation-list">${obligations.slice(0,5).map(o=>`<div><span>${esc(o.description)}</span><b>−${fmt(o.amount)} · нед. ${o.dueWeek}</b></div>`).join('')}</div>`:''}<div class="section-title"><h2>План → факт</h2><span class="soft-label">План подтверждён</span></div>${plan?planFactHtml(plan,actual):'<div class="need-note">У этой недели ещё нет плана.</div>'}<div class="section-title"><h2>Копилка</h2><button data-savings>Открыть</button></div><div class="card"><div class="goal-card"><div class="goal-icon">${illustration('🪙')}</div><div><h3>${fmt(state.wallet.savings)} монет</h3><p>${goalView()?`Для цели «${esc(goalView().name)}» · ≈ ${weeksToGoal()} нед.`:'Можно выбрать цель позже'}</p></div></div></div><div class="section-title"><h2>История</h2></div><div class="card history">${historyHtml()}</div></section>`;
+    return `<section class="screen">${topbar('Мой бюджет')}<div class="metric-grid"><div class="metric"><div class="label">Баланс</div><div class="value">${fmt(state.wallet.balance)}</div></div><div class="metric"><div class="label">До дохода</div><div class="value">${state.wallet.nextIncomeIn} дн.</div></div><div class="metric"><div class="label">Нужно предусмотреть</div><div class="value money-orange">${fmt(reserve)}</div></div><div class="metric"><div class="label">Свободно сейчас</div><div class="value money-green">${fmt(free)}</div></div></div><div class="section-title"><h2>Состояние бюджета</h2></div><div class="card health-card"><div class="health-dot ${state.financialHealth>=62?'stable':state.financialHealth>=45?'caution':'risk'}"></div><div><h3>${h[0]}</h3><p>${h[1]}</p></div></div>${obligations.length?`<div class="section-title"><h2>Будущие списания</h2></div><div class="card obligation-list">${obligations.slice(0,5).map(o=>`<div><span>${esc(o.description)}</span><b>−${fmt(o.amount)} · нед. ${o.dueWeek}</b></div>`).join('')}</div>`:''}<div class="section-title"><h2>План → факт</h2><span class="soft-label">${isJunior()?'План готов':'План подтверждён'}</span></div>${plan?planFactHtml(plan,actual):'<div class="need-note">У этой недели ещё нет плана.</div>'}<div class="section-title"><h2>Копилка</h2><button data-savings>Открыть</button></div><div class="card"><div class="goal-card"><div class="goal-icon">${illustration('🪙')}</div><div><h3>${fmt(state.wallet.savings)} монет</h3><p>${goalView()?`Для цели «${esc(goalView().name)}» · ≈ ${weeksToGoal()} нед.`:'Можно выбрать цель позже'}</p></div></div></div><div class="section-title"><h2>История</h2></div><div class="card history">${historyHtml()}</div></section>`;
   }
 
   function profileScreen(){
