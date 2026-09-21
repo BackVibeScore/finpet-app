@@ -49,3 +49,4 @@ jobs:
           node tests/web_competition_requirements_smoke.js
           node tests/kid_copy_goals_smoke.js
           node tests/sections_smoke.js
+          node tests/critical_pet_needs_smoke.js
