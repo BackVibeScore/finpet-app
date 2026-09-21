@@ -31,7 +31,7 @@ assert(s.workState && s.workState.shiftsLimit===3,'v4 workState migration missin
 // Easy mode keeps the visual jar planner and child-friendly language.
 r=boot({...base('easy'),weekNeedsPlanning:true,weekPlan:null,weekSnapshot:null});
 assert(r.app.innerHTML.includes('mode-easy')||r.app.innerHTML.includes('junior-jars'),'easy presentation missing');
-assert(r.app.innerHTML.includes('Нужно')&&r.app.innerHTML.includes('Оставлю'),'easy language missing');
+assert(r.app.innerHTML.includes('На нужное')&&r.app.innerHTML.includes('Пока не трачу'),'easy language missing');
 
 // Medium mode uses the combined content/UI without exposing age.
 r=boot(base('medium'));
