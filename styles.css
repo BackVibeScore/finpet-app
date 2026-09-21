@@ -605,3 +605,117 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
   .home-screen .quick-actions-v2 .action small{min-height:18px}
 }
 /* ===== END V24 ===== */
+
+
+/* ===== V25 HOME FLOW HIERARCHY ===== */
+.home-screen>.topbar .balance-pill{display:flex!important}
+.home-screen .quick-actions-title{margin-top:18px}
+.home-screen .home-today-title{margin-top:24px;margin-bottom:10px}
+.home-screen .home-today-title h2{font-size:21px}
+.home-screen .home-end-day{margin-top:14px;margin-bottom:4px}
+.home-screen .home-progress-divider{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:30px 0 8px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.home-screen .home-progress-divider:before,
+.home-screen .home-progress-divider:after{
+  content:"";
+  height:1px;
+  background:var(--line);
+  flex:1;
+}
+.home-screen .home-money-title{margin-top:16px}
+.home-finance-strip{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px;
+  background:#e1d5c8;
+  border:1px solid #e1d5c8;
+  border-radius:14px;
+  overflow:hidden;
+  margin:0 0 6px;
+}
+.home-finance-strip>div,
+.home-finance-strip>button{
+  min-width:0;
+  min-height:72px;
+  margin:0;
+  padding:12px 10px;
+  border:0;
+  border-radius:0;
+  background:#f3e9de;
+  color:var(--text);
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+}
+.home-finance-strip>button{
+  cursor:pointer;
+}
+.home-finance-strip>button:active{filter:brightness(.97)}
+.home-finance-strip span{
+  display:block;
+  color:var(--muted);
+  font-size:10.5px;
+  line-height:1.2;
+}
+.home-finance-strip b{
+  display:block;
+  color:#4b382f;
+  font-size:14px;
+  line-height:1.2;
+  font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;
+}
+.event-resolved-compact{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  padding:12px 2px 12px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.event-resolved-check{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#e5eddf;
+  color:#48674d;
+  font-weight:800;
+}
+.event-resolved-compact b{
+  display:block;
+  font-size:13px;
+  line-height:1.25;
+}
+.event-resolved-compact small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+}
+.home-screen .work-entry{margin-top:10px}
+.home-screen .wish-card{margin-top:10px}
+.home-screen .world-progress-card{margin-top:22px}
+.home-screen .end-day-critical-note{margin-bottom:8px}
+@media(max-width:390px){
+  .home-finance-strip>div,
+  .home-finance-strip>button{padding:11px 8px;min-height:68px}
+  .home-finance-strip span{font-size:9.5px}
+  .home-finance-strip b{font-size:12.5px}
+  .home-screen .home-progress-divider{margin-top:26px}
+}
+/* ===== END V25 ===== */
