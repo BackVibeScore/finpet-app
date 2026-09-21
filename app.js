@@ -697,6 +697,41 @@
   function healthText() {
     const s = recalculateHealth();
     if (state.ageGroup === '7-11') {
+      if (state.wallet.balance >= needsReserve() + 100) return ['Денег должно хватить', 'Есть место и для нужного, и для некоторых хотелок.'];
+      if (state.wallet.balance >= needsReserve()) return ['Монет осталось немного', 'На важное пока хватает, а новые покупки лучше сравнить с планом.'];
+      return ['Монет мало до следующей недели', 'Придётся решить, что можно отложить.'];
+    }
+    const load = (state.futureObligations || []).filter(o => o.dueWeek <= state.wallet.week + 1).reduce((a,o)=>a+o.amount,0);
+    if (state.ageGroup === '15-17' && load >= state.wallet.weeklyIncome * .35) return ['Высокая нагрузка обязательствами', `В ближайшем бюджете уже занято около ${fmt(load)} монет.`];
+    if (s >= 80) return ['Хороший запас', 'Есть резерв и пространство для решений.'];
+    if (s >= 62) return ['Стабильно', 'Бюджет пока выдерживает текущий темп.'];
+    if (s >= 45) return ['Мало свободных средств', 'Следующие траты лучше сверять с планом.'];
+    return ['Есть риск', 'Запаса мало: неожиданная трата может изменить планы.'];
+  }
+
+  function pageArtwork(kind) {
+    const scenes={goals:['🪙','🎧','🗺️'],budget:['💰','🪙','📖'],tasks:['📖','🧩','🏆'],shop:['🪴','🛹','🎁'],sidejob:['◇','🎧','💰'],profile:['📷','🗺️','🧢'],progress:['🏠','🪴','🗺️'],achievements:['🏆','🎁','📷'],savings:['🪙','🎧','💰'],settings:['🎧','🪴','📖']};
+    const objects=scenes[kind]; if(!objects)return '';
+    return `<div class="page-artwork artwork-${kind}" aria-hidden="true"><span class="artwork-wash"></span><svg class="artwork-line" viewBox="0 0 440 120" preserveAspectRatio="none"><path d="M12 85 C65 22 129 125 199 66 S332 18 425 73" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 7"/><path d="M25 34 l9 -4 m-4 -8 l3 10 M399 95 l12 -4 m-3 -8 l-4 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${objects.map((o,i)=>`<span class="artwork-object artwork-object-${i}">${illustration(o)}</span>`).join('')}</div>`;
+  }
+
+  function jarPlannerRow(label, id, value, icon, hint) {
+    const stacks = Math.max(0, Math.round(value / 100));
+    return `<div class="jar-plan"><div class="jar-label"><span>${icon}</span><div><b>${label}</b><small>${hint}</small></div></div><div class="coin-stacks">${Array.from({length:Math.min(10,stacks)},()=>'<i>●</i>').join('') || '<em>пусто</em>'}</div><div class="jar-controls"><button data-jar-delta="-100" data-jar-target="${id}">−</button><input id="${id}" type="number" value="${Math.max(0,Math.round(value))}" readonly><button data-jar-delta="100" data-jar-target="${id}">+</button></div></div>`;
+  }
+
+  function weekStartScreen() {
+    const existing = planForWeek();
+    const availableNow = state.wallet.balance;
+    const available = planningBudget();
+    const needs = existing?.necessary ?? expectedNeedsTotal();
+    const wants = existing?.wants ?? Math.min(200, Math.max(0, available - needs));
+    const savings = existing?.savings ?? Math.min(200, Math.max(0, available - needs - wants));
+    const reserve = existing?.reserve ?? Math.max(0, available - needs - wants - savings);
+    const g = goalView();
+    const charges = state.weekOpeningCharges || [];
+    const demo = demoStrip();
+    if (state.ageGroup === '7-11') {
       return `<section class="screen week-screen junior-week">${demo}<div class="week-kicker">${editingPlan ? 'План на неделю' : 'Новая неделя'}</div><h1>Как хочешь потратить монеты?</h1><p class="week-lead">У тебя ${fmt(available)} монет. Составь план на неделю. Потом посмотрим, как получилось на самом деле.</p>
         ${charges.length ? `<div class="opening-charges"><b>Уже произошло</b>${charges.map(c=>`<span>${esc(c.description)} −${fmt(c.amount)}</span>`).join('')}</div>`:''}
         <div class="junior-jars">${jarPlannerRow('На нужное','planNecessary',needs,'●','еда, уход и важные вещи')}${jarPlannerRow('На хотелки','planWants',wants,'★','игры, вещи и развлечения')}${jarPlannerRow('В копилку','planSavings',savings,'◆',g ? `коплю на ${g.name}` : 'на большую покупку')}${jarPlannerRow('Пока не трачу','planReserve',reserve,'○','оставлю на потом')}</div>
