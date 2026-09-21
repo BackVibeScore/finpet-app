@@ -21,9 +21,12 @@ assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(src.includes("petBubble='';")&&src.includes("item.category==='Еда'"),'shop purchase does not explicitly clear pet bubble / distinguish food');
-assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART'),'shop presentation styles missing');
-assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'food sprite missing');
-assert(sw.includes('./assets/food-items.webp'),'food sprite missing from offline cache');
+assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART')&&css.includes('V23 ACTION MENU + REGENERATED FOOD ART'),'shop presentation styles missing');
+assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'legacy food sprite missing');
+assert(fs.existsSync(path.join(ROOT,'assets/food-items-v2.svg'))&&fs.statSync(path.join(ROOT,'assets/food-items-v2.svg')).size>4000,'regenerated food sprite missing');
+assert(css.includes("assets/food-items-v2.svg"),'regenerated food sprite not wired into styles');
+assert(src.includes('quick-actions quick-actions-v2'),'refined quick action menu not rendered');
+assert(sw.includes('./assets/food-items.webp')&&sw.includes('./assets/food-items-v2.svg'),'food artwork missing from offline cache');
 const generated=['item-haircut.webp','item-prevention.webp','item-cinema.webp','item-bike.webp','goal-bike.webp'];
 for(const file of generated){
   const fp=path.join(ROOT,'assets',file);
