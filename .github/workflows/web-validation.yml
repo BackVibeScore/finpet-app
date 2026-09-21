@@ -50,3 +50,4 @@ jobs:
           node tests/kid_copy_goals_smoke.js
           node tests/sections_smoke.js
           node tests/critical_pet_needs_smoke.js
+          node tests/health_system_smoke.js
