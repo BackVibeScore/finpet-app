@@ -277,3 +277,12 @@ html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!i
 .demo-step-savings .save-controls{outline:2px solid color-mix(in srgb,var(--primary) 46%,transparent);outline-offset:5px;border-radius:12px}
 @media(max-width:380px){.demo-story h3{font-size:19px}.demo-finish-metrics{grid-template-columns:1fr}.mode-demo h3:after{font-size:9px}}
 /* ===== END V13 ===== */
+
+
+/* ===== V14 KID COPY + GOAL DETAILS ===== */
+.goal-kid-numbers{display:grid;gap:3px;margin:9px 0 10px;font-size:12px;color:var(--muted)}
+.goal-kid-numbers b{color:var(--text);font-weight:650}
+.item-effect-text{margin-top:5px;font-size:12px;font-weight:650;color:var(--primary)}
+.mode-easy .plan-fact .pf-head b{font-size:11px}
+.mode-easy .plan-fact .pf-row span{font-weight:650}
+/* ===== END V14 ===== */
