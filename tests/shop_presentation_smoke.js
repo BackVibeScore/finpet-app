@@ -14,7 +14,8 @@ assert(!s.worldPlacements.food_basic,'consumable food incorrectly placed in room
 
 d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');
 const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8'),sw=fs.readFileSync(ROOT+'/sw.js','utf8');
-assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');\nassert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
+assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
+assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(css.includes('V20 SHOP SEMANTICS'),'shop semantics styles missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'food sprite missing');
 assert(sw.includes('./assets/food-items.webp'),'food sprite missing from offline cache');
