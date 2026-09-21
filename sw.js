@@ -1,4 +1,4 @@
-const CACHE = 'finpet-v27-home-flow-20260922c';
+const CACHE = 'finpet-v28-owned-items-20260922d';
 const ASSETS = ['./','./index.html','./styles.css','./welcome.css','./content.js','./analytics.js','./storage.js','./app.js','./welcome.js','./manifest.json','./assets/objects.webp','./assets/food-items.webp','./assets/food-items-v2.svg','./assets/goal-bike.webp','./assets/item-bike.webp','./assets/item-cinema.webp','./assets/item-prevention.webp','./assets/item-haircut.webp','./assets/extras.webp','./assets/worlds.webp','./assets/kopihvost-splash.webp','./assets/onboarding-1.webp','./assets/onboarding-2.webp','./assets/onboarding-3.webp','./assets/onboarding-4.webp'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
