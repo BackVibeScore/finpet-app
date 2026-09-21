@@ -5,9 +5,9 @@ function seed(){return {version:6,onboardingDone:true,onboardingIntroCompleted:t
 function boot(){const app=element(),store={finpet_mvp_state_v1:JSON.stringify(seed())};const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const document={documentElement:{dataset:{}},getElementById:id=>id==='app'?app:null,querySelector:()=>null,querySelectorAll:()=>[],createElement:element,body:{appendChild:()=>{}},addEventListener:()=>{}};const sb={window:null,document,localStorage,location:{protocol:'file:'},navigator:{},crypto,Intl,console,confirm:()=>true,Math,matchMedia:()=>({matches:false}),setTimeout:(fn,ms)=>1,clearTimeout:()=>{}};sb.window=sb;sb.window.scrollTo=()=>{};vm.createContext(sb);vm.runInContext(fs.readFileSync(ROOT+'/content.js','utf8'),sb);vm.runInContext(fs.readFileSync(ROOT+'/app.js','utf8'),sb);return {dev:sb.window.FINPET_DEV,app}}
 function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(),d=r.dev;
-d.actions.setShopCategory('Здоровье');let rendered=d.setRoute('shop');assert(rendered.includes('assets/item-haircut.webp')&&rendered.includes('assets/item-prevention.webp'),'health generated art not rendered');
-d.actions.setShopCategory('Игры');rendered=d.setRoute('shop');assert(rendered.includes('assets/item-cinema.webp'),'cinema generated art not rendered');
-d.actions.setShopCategory('Особое');rendered=d.setRoute('shop');assert(rendered.includes('assets/item-bike.webp'),'bike shop generated art not rendered');
+d.actions.setShopCategory('Здоровье');let rendered=r.app.innerHTML;assert(rendered.includes('assets/item-haircut.webp')&&rendered.includes('assets/item-prevention.webp'),'health generated art not rendered');
+d.actions.setShopCategory('Игры');rendered=r.app.innerHTML;assert(rendered.includes('assets/item-cinema.webp'),'cinema generated art not rendered');
+d.actions.setShopCategory('Особое');rendered=r.app.innerHTML;assert(rendered.includes('assets/item-bike.webp'),'bike shop generated art not rendered');
 rendered=d.setRoute('goals');assert(rendered.includes('assets/goal-bike.webp'),'bike goal generated art not rendered');
 const before=d.getState();d.actions.buyItem('food_basic');let s=d.getState();
 assert(s.pet.satiety>before.pet.satiety,'food effect missing');
