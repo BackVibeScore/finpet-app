@@ -10,12 +10,14 @@ assert(s.pet.satiety>before.pet.satiety,'food effect missing');
 assert(!s.inventory.some(x=>x.id==='food_basic'),'consumable food incorrectly stored in inventory');
 assert(!s.worldPlacements.food_basic,'consumable food incorrectly placed in room');
 
-d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');
+d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');assert(s.currentWorldArea==='home','durable purchase did not select its logical world area');assert(d.getModal()?.actions?.[0]?.label==='Посмотреть в комнате','durable purchase feedback does not lead to room');
 const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8'),sw=fs.readFileSync(ROOT+'/sw.js','utf8');
 assert(src.includes('food_basic:0,food_snack:1,food_treat:2')&&src.includes('shopItemIllustration(item)'),'food illustration mapping missing');
+assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation-food-art':''}")&&src.includes('shopItemIllustration(p.item)'),'purchase confirmation does not use food artwork');
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
-assert(css.includes('V20 SHOP SEMANTICS'),'shop semantics styles missing');
+assert(src.includes("petBubble='';")&&src.includes("item.category==='Еда'"),'shop purchase does not explicitly clear pet bubble / distinguish food');
+assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION'),'shop presentation styles missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'food sprite missing');
 assert(sw.includes('./assets/food-items.webp'),'food sprite missing from offline cache');
 console.log('shop_presentation_smoke: OK');

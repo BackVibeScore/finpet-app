@@ -431,3 +431,12 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
 .quick-actions .action .food-action-icon{display:grid;place-items:center}
 @media(max-width:370px){.shop-item-v2{grid-template-columns:58px minmax(0,1fr) auto}.shop-item-v2 .shop-ico{width:58px;height:58px}}
 /* ===== END V20 ===== */
+
+
+/* ===== V21 PURCHASE PRESENTATION ===== */
+.confirmation-art.confirmation-food-art{width:104px;height:104px;margin:0 auto 12px;border-radius:24px;overflow:hidden;background:#fff6e9;border:1px solid #ead9c5}
+.confirmation-art.confirmation-food-art .shop-food-art{width:100%;height:100%}
+.confirmation-sheet .confirmation-art:not(.confirmation-food-art){display:grid;place-items:center;min-height:76px}
+.feedback-actions{grid-template-columns:1fr}
+.feedback-actions .btn{width:100%}
+/* ===== END V21 ===== */

@@ -439,8 +439,10 @@
   function purchaseUseText(item){
     if(isPersistentShopItem(item)){
       if(item.category==='Одежда')return 'Покупка добавлена в гардероб и остаётся у питомца.';
-      if(item.category==='Интерьер')return 'Покупка появилась в комнате и остаётся в мире питомца.';
-      return 'Покупка появилась в подходящем месте мира питомца.';
+      if(item.category==='Интерьер')return 'Вещь появилась в комнате и остаётся там.';
+      if(item.category==='Игры')return 'Игрушка появилась в комнате. Ею можно пользоваться дальше.';
+      if(item.category==='Одежда')return 'Одежда добавлена питомцу и остаётся после покупки.';
+      return 'Вещь появилась в подходящем месте мира питомца.';
     }
     if(item.category==='Еда')return 'Еда использована сразу и изменила состояние питомца.';
     if(item.category==='Здоровье')return 'Покупка применена сразу. В комнате она не остаётся отдельным предметом.';
@@ -1103,9 +1105,15 @@
 
   function buyItem(id) {
     const item=C.items.find(x=>x.id===id);if(!item)return;const persistent=isPersistentShopItem(item);if(persistent&&state.inventory.some(x=>x.id===item.id)){toast('Этот предмет уже есть');return;}
+    petBubble='';
+    const placement=persistent?C.world?.placements?.[item.id]:null;
     const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,beforeHealth=state.pet.health,beforeSatiety=state.pet.satiety,delay=item.need?0:purchaseGoalDelay(item.price),beforeFree=freeMoney();
     if(spend(item.price,item.need?'Необходимые расходы':'Желания',item.name,'shop',{itemId:item.id})){
-      if(persistent){state.inventory.push({id:item.id,boughtAt:Date.now(),week:state.wallet.week,day:state.wallet.day});ensurePlacement(item.id);}
+      if(persistent){
+        state.inventory.push({id:item.id,boughtAt:Date.now(),week:state.wallet.week,day:state.wallet.day});
+        ensurePlacement(item.id);
+        if(placement?.area)state.currentWorldArea=placement.area;
+      }
       if(item.need){state.wallet.needsSpent+=item.price;state.stats.needsFirst++;} else if(item.price>beforeFree||(planForWeek()&&actualsForWeek().wants>planForWeek().wants)){state.stats.impulsePurchases++;track('impulse_purchase',{itemId:item.id,price:item.price});}
       const itemEffect={...(item.effect||{})};delete itemEffect.development;adjustPet(itemEffect);if(item.cures&&state.healthCondition===item.cures)state.healthCondition=null;if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;
       checkAchievements();recalculateHealth();recalculateWorldProgress();save();
@@ -1115,11 +1123,16 @@
       if(state.pet.health!==beforeHealth)changes.push({label:'Здоровье',value:`${beforeHealth} → ${state.pet.health}`});
       if(delay>0)changes.push({label:isJunior()?'До покупки':'До цели',value:`примерно +${delay} нед.`});
       const planProgress=juniorPlanProgress(item.need?'necessary':'wants'); if(planProgress)changes.push({label:planProgress.label,value:planProgress.value});
+      const purchaseActions=persistent
+        ? [{label:placement?.area==='park'?'Посмотреть в парке':placement?.area==='city'?'Посмотреть в городе':'Посмотреть в комнате',route:'home'},{label:'Продолжить покупки',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
+        : item.category==='Еда'
+          ? [{label:'Посмотреть состояние',route:'pet'},{label:'Выбрать ещё',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
+          : [{label:'Продолжить покупки',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}];
       modal=buildFinancialFeedback(
         `Куплено: ${item.name}`,
         changes,
         isJunior()?purchaseUseText(item):(item.need?'Покупка применена. Она поддерживает состояние питомца и учитывается в необходимых расходах.':'Покупка применена и уменьшила сумму для других решений.'),
-        [{label:'Продолжить',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
+        purchaseActions
       );
       track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
     }
@@ -1580,7 +1593,7 @@
       const p=purchasePreview(modal.itemId);if(!p)return '';
       const effect=itemEffectText(p.item)||(p.delay>0?`Цель примерно на ${p.delay} нед. дальше`:'Мир питомца изменится');
       const actions=p.enough?`<div class="grid2"><button class="btn primary" data-confirm-buy="${p.item.id}">Купить</button><button class="btn secondary" data-purchase-cancel>Не сейчас</button></div>`:`<div class="feedback-section shortage-feedback"><h3>Что изменилось</h3><p>Покупка не выполнена.</p></div><div class="feedback-section"><h3>Почему</h3><p>${isJunior()?`Не хватает ${fmt(p.missing)} монет. Монеты из копилки сами не берутся.`:`Не хватает ${fmt(p.missing)} монет. Накопления не снимаются автоматически.`}</p></div><div class="feedback-section"><h3>Что дальше</h3><div class="insufficient-actions"><button class="btn secondary" data-purchase-cancel>Вернуться</button><button class="btn secondary" data-modal-route="tasks">Открыть задания</button>${state.ageGroup==='15-17'?'<button class="btn secondary" data-modal-route="sidejob">Открыть подработку</button>':''}</div></div>`;
-      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art">${illustration(p.item.icon,p.item.name||p.item.id)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>${isJunior()?'После покупки':'Баланс после'}</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>${isJunior()?'Что изменится':'Влияние'}</span><b>${esc(effect)}</b></div></div>${actions}</div></div>`;
+      return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="confirmation-art ${p.item.category==='Еда'?'confirmation-food-art':''}">${shopItemIllustration(p.item)}</div><div class="eyebrow">${p.category}</div><h2>${esc(p.item.name)}</h2><div class="confirmation-facts"><div><span>Цена</span><b>${fmt(p.item.price)} ●</b></div><div><span>${isJunior()?'После покупки':'Баланс после'}</span><b>${p.enough?fmt(p.after)+' ●':'Не хватает '+fmt(p.missing)+' ●'}</b></div><div><span>${isJunior()?'Что изменится':'Влияние'}</span><b>${esc(effect)}</b></div></div>${actions}</div></div>`;
     }
     if(modal.type==='withdrawalPreview'){
       const p=withdrawalPreview(modal.amount),g=goalView();
