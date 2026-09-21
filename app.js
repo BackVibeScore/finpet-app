@@ -484,7 +484,7 @@
   function currentEvent() { return C.events.find(x => x.id === state.currentEventId) || eventPoolFor()[0] || C.events[0]; }
 
   function eventTeaser() {
-    if (state.eventResolved) return `<div class="card"><div class="task-teaser"><div class="round-icon">✓</div><div><h3>Решение принято</h3><p>Можно заняться питомцем или завершить игровой день.</p></div></div></div>`;
+    if (state.eventResolved) return `<div class="event-resolved-compact"><span class="event-resolved-check">✓</span><div><b>Ситуация дня решена</b><small>Можно заняться питомцем, подработать или перейти к следующему дню.</small></div></div>`;
     const e = currentEvent();
     return `<button class="card task-teaser event-card" data-event="${e.id}"><div class="round-icon">${eventIllustration(e)}</div><div><h3>${e.title}</h3><p>${e.situation || e.text}</p></div><span class="chevron">›</span></button>`;
   }
@@ -1815,13 +1815,47 @@
 
   function homeScreen(){
     const g=goalView(),baseGoal=activeGoal(),event=currentEvent(),h=healthText(),task=activeTaskForAge(),easy=state.difficultyMode==='easy',medium=state.difficultyMode==='medium';
-    return `<section class="screen home-screen">${topbar('Дом')}${worldSceneHtml()}<div class="pet-status-line"><b>${petStage()}</b><span>${petWellbeing()>=70?'в хорошем состоянии':petWellbeing()>=50?'в норме':'нужно немного внимания'}</span></div><div class="stat-row">${miniStat(easy?'Сыт':'Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div>
-      ${lowPetNeedsHtml()}<div class="money-strip home-money"><div><span>${easy?'Монеты':'Баланс'}</span><b>${fmt(state.wallet.balance)} ●</b></div><button data-savings><span>В копилке</span><b>${fmt(state.wallet.savings)} ●</b></button><div><span>${easy?'До новых монет':'До дохода'}</span><b>${state.wallet.nextIncomeIn} дн.</b></div><div><span>${easy?'Хватит?':'Состояние'}</span><b>${h[0]}</b></div></div>
-      ${g?`<div class="section-title compact-title"><h2>${easy?'Коплю на':'Текущая цель'}</h2><button data-route="goals">Открыть</button></div><div class="card goal-card compact-card"><div class="goal-icon">${illustration(g.icon,g.name||g.label||g.id)}</div><div><h3>${esc(g.name)}</h3><p>${fmt(goalSaved())} из ${fmt(goalTarget(baseGoal))} · ≈ ${weeksToGoal()} нед.</p><div class="bar green"><i style="width:${progressPct()}%"></i></div></div><div class="goal-progress">${progressPct()}%</div></div>`:`<div class="section-title compact-title"><h2>${easy?'На что будем копить?':'Текущая цель'}</h2></div><button class="btn secondary block" data-route="goals">${easy?'Выбрать, на что копить':'Выбрать цель'}</button>`}
+    const goalBlock=g?`<div class="section-title compact-title"><h2>${easy?'Коплю на':'Текущая цель'}</h2><button data-route="goals">Открыть</button></div><div class="card goal-card compact-card"><div class="goal-icon">${illustration(g.icon,g.name||g.label||g.id)}</div><div><h3>${esc(g.name)}</h3><p>${fmt(goalSaved())} из ${fmt(goalTarget(baseGoal))} · ≈ ${weeksToGoal()} нед.</p><div class="bar green"><i style="width:${progressPct()}%"></i></div></div><div class="goal-progress">${progressPct()}%</div></div>`:`<div class="section-title compact-title"><h2>${easy?'На что будем копить?':'Текущая цель'}</h2></div><button class="btn secondary block" data-route="goals">${easy?'Выбрать, на что копить':'Выбрать цель'}</button>`;
+    const taskBlock=`<div class="section-title compact-title"><h2>${easy?'Задание':'Активное задание'}</h2><button data-route="tasks">Все</button></div>${task?`<div class="active-task-card"><div class="active-task-art">${learningArtwork(task.cyberSafety?'help':'needs')}</div><div><span>${taskTypeLabel(task.mechanicType)}</span><h3>${esc(task.title)}</h3><p>${easy?'Получишь':'Награда'} +${fmt(task.reward)} ●</p></div><button class="btn secondary" data-open-task="${task.id}">Начать</button></div>`:`<div class="empty-state small-empty">${learningArtwork('savings')}<div><b>Все доступные задания выполнены</b><button class="linkbtn" data-route="tasks">Открыть список</button></div></div>`}`;
+    const dayEventTitle=state.eventResolved?'Сегодня':'Сегодня нужно решить';
+    return `<section class="screen home-screen">
+      ${topbar('Дом')}
+      ${worldSceneHtml()}
+      <div class="pet-status-line"><b>${petStage()}</b><span>${petWellbeing()>=70?'в хорошем состоянии':petWellbeing()>=50?'в норме':'нужно немного внимания'}</span></div>
+      <div class="stat-row">${miniStat(easy?'Сыт':'Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div>
+
+      ${lowPetNeedsHtml()}
+      ${emergencyCareButtonsHtml()}
+
+      <div class="section-title quick-actions-title"><h2>Что сделать?</h2></div>
+      <div class="quick-actions quick-actions-v2">
+        <button class="action" data-shop-open="Еда"><span class="ico food-action-icon">${shopItemIllustration(C.items.find(x=>x.id==='food_basic'))}</span><b>Еда</b><small>выбрать еду</small></button>
+        <button class="action" data-shop-open="Игры"><span class="ico">${illustration('⚽')}</span><b>Игры</b><small>выбрать игру</small></button>
+        <button class="action" data-shop-open="Здоровье"><span class="ico">${illustration('🫧')}</span><b>Здоровье</b><small>выбрать заботу</small></button>
+        <button class="action" data-route="shop"><span class="ico">${illustration('','shop')}</span><b>Магазин</b><small>все товары</small></button>
+      </div>
+
+      <div class="section-title home-today-title"><h2>${dayEventTitle}</h2>${state.eventResolved?'<span class="soft-label">готово</span>':`<span class="soft-label">${event?.categoryLabel||'событие'}</span>`}</div>
+      ${eventTeaser()}
+      ${medium?`<button class="work-entry" data-route="sidejob"><span class="work-entry-icon">${illustration('◇')}</span><span><b>${state.workSession?'Продолжить смену':'Подработка'}</b><small>${workShiftStatusShort()} · дополнительный доход</small></span><span aria-hidden="true">›</span></button>`:''}
+      ${wishHtml()}
+      ${criticalPetNeeds().length?'<p class="end-day-critical-note">Перед новым днём нужно помочь питомцу</p>':''}
+      <button class="btn primary block end-day home-end-day ${criticalPetNeeds().length?'needs-care':''}" data-new-day>Завершить день ${state.wallet.day}</button>
+
+      <div class="home-progress-divider"><span>${easy?'Мой прогресс':'Прогресс'}</span></div>
+
+      <div class="section-title compact-title home-money-title"><h2>${easy?'Мои монеты':'Мои деньги'}</h2><button data-route="budget">Подробнее</button></div>
+      <div class="home-finance-strip">
+        <button data-savings><span>В копилке</span><b>${fmt(state.wallet.savings)} ●</b></button>
+        <div><span>${easy?'До новых монет':'До дохода'}</span><b>${state.wallet.nextIncomeIn} дн.</b></div>
+        <div><span>${easy?'Хватит?':'Состояние'}</span><b>${h[0]}</b></div>
+      </div>
+
+      ${goalBlock}
+      ${taskBlock}
       ${sectionHomeCard()}
-      <div class="section-title compact-title"><h2>${easy?'Задание':'Активное задание'}</h2><button data-route="tasks">Все</button></div>${task?`<div class="active-task-card"><div class="active-task-art">${learningArtwork(task.cyberSafety?'help':'needs')}</div><div><span>${taskTypeLabel(task.mechanicType)}</span><h3>${esc(task.title)}</h3><p>${easy?'Получишь':'Награда'} +${fmt(task.reward)} ●</p></div><button class="btn secondary" data-open-task="${task.id}">Начать</button></div>`:`<div class="empty-state small-empty">${learningArtwork('savings')}<div><b>Все доступные задания выполнены</b><button class="linkbtn" data-route="tasks">Открыть список</button></div></div>`}
-      <div class="section-title compact-title"><h2>${easy?'Что случилось':'Текущая ситуация'}</h2><span class="soft-label">${event?.categoryLabel||'событие'}</span></div>${eventTeaser()}
-      ${emergencyCareButtonsHtml()}<div class="section-title quick-actions-title"><h2>Что сделать?</h2></div><div class="quick-actions quick-actions-v2"><button class="action" data-shop-open="Еда"><span class="ico food-action-icon">${shopItemIllustration(C.items.find(x=>x.id==='food_basic'))}</span><b>Еда</b><small>выбрать еду</small></button><button class="action" data-shop-open="Игры"><span class="ico">${illustration('⚽')}</span><b>Игры</b><small>выбрать игру</small></button><button class="action" data-shop-open="Здоровье"><span class="ico">${illustration('🫧')}</span><b>Здоровье</b><small>выбрать заботу</small></button><button class="action" data-route="shop"><span class="ico">${illustration('','shop')}</span><b>Магазин</b><small>все товары</small></button></div>${medium?`<button class="work-entry" data-route="sidejob"><span class="work-entry-icon">${illustration('◇')}</span><span><b>${state.workSession?'Продолжить смену':'Подработка'}</b><small>${workShiftStatusShort()} · дополнительный доход</small></span><span aria-hidden="true">›</span></button>`:''}${wishHtml()}${worldProgressCard()}${criticalPetNeeds().length?'<p class="end-day-critical-note">Перед новым днём нужно помочь питомцу</p>':''}<button class="btn primary block end-day ${criticalPetNeeds().length?'needs-care':''}" data-new-day>Завершить день ${state.wallet.day}</button></section>`;
+      ${worldProgressCard()}
+    </section>`;
   }
 
   function petScreen(){
