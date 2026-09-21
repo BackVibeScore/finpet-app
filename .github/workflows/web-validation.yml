@@ -47,3 +47,4 @@ jobs:
           node tests/validate_analytics.js
           node tests/repo_hygiene_smoke.js
           node tests/web_competition_requirements_smoke.js
+          node tests/kid_copy_goals_smoke.js
