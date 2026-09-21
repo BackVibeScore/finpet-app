@@ -4,7 +4,7 @@ const req=(ok,msg)=>{if(!ok)throw new Error(msg)};
 req(app.includes('pet-ear-left')&&app.includes('pet-ear-right'),'pet ears are not independently addressable');
 req(app.includes('pet-gaze')&&app.includes('pet-nose')&&app.includes('pet-cheeks'),'pet face micro-motion elements missing');
 req(css.includes('@keyframes petEarLeftV9')&&css.includes('@keyframes petGazeV9')&&css.includes('@keyframes petShadowV9'),'V9 pet micro-motion keyframes missing');
-req(css.includes('.nav button[data-route="profile"]>.art{margin-top:2px'),'profile nav icon alignment fix missing');
+req(app.includes('function profileNavIcon()')&&css.includes('.nav-profile-icon .profile-ring'),'round profile nav icon missing');
 req(!app.includes('data-difficulty-change'),'difficulty switch must not exist in settings');
 req(!app.includes('Режим можно изменить позже в настройках.'),'onboarding still promises settings difficulty switch');
 req(app.includes('class="parent-quiz"')&&app.includes("type:'quick_sum'"),'simplified parent check missing');

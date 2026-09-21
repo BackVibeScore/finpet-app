@@ -28,7 +28,8 @@ const source=fs.readFileSync(ROOT+'/app.js','utf8'),contentSource=fs.readFileSyn
 assert(source.includes("moneyLabel(){ return isJunior()?'Монет осталось':'Баланс'; }"),'child money label helper missing');
 assert(contentSource.includes("name:'Планшет', target:1200")&&contentSource.includes("name:'Смарт-часы', target:3000"),'new goal source data missing');
 assert(source.includes('juniorPlanProgress')&&source.includes('juniorPlanTrackerHtml'),'weekly plan is not connected to real spending feedback');
-const css=fs.readFileSync(ROOT+'/styles.css','utf8');assert(css.includes('V15 LIVE WEEKLY PLAN')&&css.includes('button[data-route="profile"]>.art{position:relative;top:3px}'),'warm text/profile icon polish missing');
+const css=fs.readFileSync(ROOT+'/styles.css','utf8');assert(css.includes('V15 LIVE WEEKLY PLAN')&&css.includes('V16 PALETTE ENFORCEMENT')&&css.includes('.nav-profile-icon .profile-ring'),'warm palette/profile icon polish missing');
+assert(source.includes("r==='profile'?profileNavIcon()"),'profile still uses cropped sprite icon');
 const demoText=dev.demo.periods().flatMap(p=>[p.title,p.lead,...p.steps.flatMap(s=>[s.label,s.hint])]).join(' ');
 assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|фактическ\w*|периодический доход|распределите доход)\b/i.test(demoText),'Demo still exposes adult financial wording');
 console.log('kid_copy_goals_smoke: OK');

@@ -1254,10 +1254,13 @@
     return `<svg class="learning-art" viewBox="0 0 220 150" aria-hidden="true"><path d="M34 113c19-42 51-72 88-68 31 3 46 28 62 67" fill="#e7eadc"/><path d="M30 116h160" stroke="#bdc5b2" stroke-width="3" stroke-linecap="round"/><g fill="#fffdf8" stroke="${accent}" stroke-width="4"><path d="M52 72h50l-5 47H57z"/><path d="M62 72c0-17 28-17 28 0" fill="none"/>${extra}</g><circle cx="77" cy="91" r="8" fill="${accent}"/><path d="M46 126c22 7 45 7 68 0M126 126c17 5 35 5 52 0" stroke="#c99971" stroke-width="3" stroke-linecap="round"/></svg>`;
   }
 
+  function profileNavIcon(){
+    return `<span class="nav-profile-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="presentation"><circle class="profile-ring" cx="16" cy="16" r="14"/><circle class="profile-head" cx="16" cy="12" r="4.2"/><path class="profile-shoulders" d="M8.6 24.3c.9-4.1 3.7-6.3 7.4-6.3s6.5 2.2 7.4 6.3"/></svg></span>`;
+  }
   function renderNav(){
     if(['weekStart','weekSummary','help','adultGate','adult'].includes(route))return '';
     const easy=isJunior(),nav=[['home','⌂','Дом'],['tasks','◫','Задания'],['budget','◒',easy?'Монеты':'Бюджет'],['goals','◎',easy?'Копим':'Цели'],['profile','○','Профиль']];
-    return `<nav class="nav" aria-label="Основная навигация">${nav.map(([r,i,l])=>`<button data-route="${r}" class="${route===r?'active':''}" ${route===r?'aria-current="page"':''}>${illustration(({home:'🏠',tasks:'📖',budget:'💰',goals:'🪙',profile:'profile'})[r])}${l}</button>`).join('')}</nav>`;
+    return `<nav class="nav" aria-label="Основная навигация">${nav.map(([r,i,l])=>`<button data-route="${r}" class="${route===r?'active':''}" ${route===r?'aria-current="page"':''}>${r==='profile'?profileNavIcon():illustration(({home:'🏠',tasks:'📖',budget:'💰',goals:'🪙'})[r])}${l}</button>`).join('')}</nav>`;
   }
 
   function renderScreen() {

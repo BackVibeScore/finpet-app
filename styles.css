@@ -302,3 +302,92 @@ html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!i
 .nav button[data-route="profile"]>.art{position:relative;top:3px}
 @media(max-width:360px){.weekly-plan-track>div{grid-template-columns:minmax(0,1fr) auto}}
 /* ===== END V15 ===== */
+
+
+/* ===== V16 PALETTE ENFORCEMENT + ROUND PROFILE ICON ===== */
+.onboarding .select-card,
+.onboarding .select-card h3,
+.onboarding .select-card p,
+.pet-create .field input,
+.pet-create .field select,
+.jar-controls input,
+.jar-controls button,
+.save-controls button,
+.withdraw-options button{color:var(--text)!important}
+
+.onboarding .select-card.active h3,
+.onboarding .select-card.active .mode-card-title,
+.jar-controls button,
+.save-controls button,
+.withdraw-options button,
+.linkbtn,
+.section-title button,
+.help-button,
+.back-button,
+.skip-link{color:var(--primary)!important}
+
+.onboarding .select-card.active{
+  background:#f8e5d8!important;
+  border-color:var(--primary)!important;
+}
+.jar-label>span{background:#f2e1d4!important;color:#7d3f25!important}
+.jar-controls button{
+  background:#f2e7dc!important;
+  border:1px solid #e5d8cc!important;
+}
+.jar-controls input{
+  background:#fffaf4!important;
+  color:var(--text)!important;
+}
+.save-controls button,.withdraw-options button{
+  background:#fffaf4!important;
+  border-color:#e5d8cc!important;
+}
+.pet-create .field input,.pet-create .field select{
+  background:#fffaf4!important;
+  color:var(--text)!important;
+  border-color:#e5d8cc!important;
+}
+.onboarding .dots i{background:#e5d8cc}
+.onboarding .dots i.active{background:var(--primary)}
+.pet-create .select-card:not(.active) h3{color:var(--text)!important}
+
+.nav-profile-icon{
+  width:32px;
+  height:32px;
+  display:block;
+  margin:0 auto 2px;
+  color:currentColor;
+  line-height:0;
+  flex:0 0 auto;
+}
+.nav-profile-icon svg{
+  display:block;
+  width:32px;
+  height:32px;
+  overflow:visible;
+}
+.nav-profile-icon .profile-ring{
+  fill:#f3e9df;
+  stroke:currentColor;
+  stroke-width:1.5;
+}
+.nav-profile-icon .profile-head{
+  fill:currentColor;
+  stroke:none;
+}
+.nav-profile-icon .profile-shoulders{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.1;
+  stroke-linecap:round;
+}
+.nav button[data-route="profile"]>.nav-profile-icon{
+  transform:translateY(3px);
+}
+.nav button:active .nav-profile-icon{
+  transform:translateY(1px) scale(1.08);
+}
+html[data-motion="off"] .nav-profile-icon{transition:none!important}
+@media(prefers-reduced-motion:reduce){.nav-profile-icon{transition:none!important}}
+/* ===== END V16 ===== */
