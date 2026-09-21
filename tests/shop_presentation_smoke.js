@@ -5,6 +5,10 @@ function seed(){return {version:6,onboardingDone:true,onboardingIntroCompleted:t
 function boot(){const app=element(),store={finpet_mvp_state_v1:JSON.stringify(seed())};const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const document={documentElement:{dataset:{}},getElementById:id=>id==='app'?app:null,querySelector:()=>null,querySelectorAll:()=>[],createElement:element,body:{appendChild:()=>{}},addEventListener:()=>{}};const sb={window:null,document,localStorage,location:{protocol:'file:'},navigator:{},crypto,Intl,console,confirm:()=>true,Math,matchMedia:()=>({matches:false}),setTimeout:(fn,ms)=>1,clearTimeout:()=>{}};sb.window=sb;sb.window.scrollTo=()=>{};vm.createContext(sb);vm.runInContext(fs.readFileSync(ROOT+'/content.js','utf8'),sb);vm.runInContext(fs.readFileSync(ROOT+'/app.js','utf8'),sb);return {dev:sb.window.FINPET_DEV,app}}
 function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(),d=r.dev;
+d.actions.setShopCategory('Здоровье');let rendered=d.setRoute('shop');assert(rendered.includes('assets/item-haircut.webp')&&rendered.includes('assets/item-prevention.webp'),'health generated art not rendered');
+d.actions.setShopCategory('Игры');rendered=d.setRoute('shop');assert(rendered.includes('assets/item-cinema.webp'),'cinema generated art not rendered');
+d.actions.setShopCategory('Особое');rendered=d.setRoute('shop');assert(rendered.includes('assets/item-bike.webp'),'bike shop generated art not rendered');
+rendered=d.setRoute('goals');assert(rendered.includes('assets/goal-bike.webp'),'bike goal generated art not rendered');
 const before=d.getState();d.actions.buyItem('food_basic');let s=d.getState();
 assert(s.pet.satiety>before.pet.satiety,'food effect missing');
 assert(!s.inventory.some(x=>x.id==='food_basic'),'consumable food incorrectly stored in inventory');
@@ -17,7 +21,16 @@ assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(src.includes("petBubble='';")&&src.includes("item.category==='Еда'"),'shop purchase does not explicitly clear pet bubble / distinguish food');
-assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION'),'shop presentation styles missing');
+assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART'),'shop presentation styles missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'food sprite missing');
 assert(sw.includes('./assets/food-items.webp'),'food sprite missing from offline cache');
+const generated=['item-haircut.webp','item-prevention.webp','item-cinema.webp','item-bike.webp','goal-bike.webp'];
+for(const file of generated){
+  const fp=path.join(ROOT,'assets',file);
+  assert(fs.existsSync(fp)&&fs.statSync(fp).size>2500,'generated asset missing '+file);
+  assert(sw.includes('./assets/'+file),'generated asset missing from offline cache '+file);
+}
+assert(src.includes("care_brush:'assets/item-haircut.webp'")&&src.includes("health_vaccine:'assets/item-prevention.webp'"),'health generated mapping missing');
+assert(src.includes("game_cinema:'assets/item-cinema.webp'")&&src.includes("special_bike:'assets/item-bike.webp'"),'shop generated mapping missing');
+assert(src.includes("'assets/goal-bike.webp'")&&src.includes('eventGeneratedIllustration')&&src.includes('goalIllustration'),'goal/event generated art helpers missing');
 console.log('shop_presentation_smoke: OK');

@@ -440,3 +440,19 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
 .feedback-actions{grid-template-columns:1fr}
 .feedback-actions .btn{width:100%}
 /* ===== END V21 ===== */
+
+
+/* ===== V22 GENERATED ITEM ART ===== */
+.generated-item-art{display:block;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none}
+.shop-ico .generated-item-art{padding:4px}
+.goal-icon .generated-item-art{width:60px;height:60px;margin:auto}
+.round-icon .generated-item-art{width:46px;height:46px;margin:auto}
+.event-generated-art{width:118px;height:118px;margin:2px auto 12px;padding:8px;border-radius:24px;background:#fff7ed;border:1px solid #ead9c5}
+.event-generated-art .generated-item-art{width:100%;height:100%}
+.placed-item .generated-item-art{width:76px;height:76px}
+.zone-bike .generated-item-art{width:108px;height:108px;transform:translate(-18px,10px)}
+.unlock-visual .generated-item-art{width:112px;height:112px;margin:auto}
+.goal-bike-world{position:absolute;right:22px;bottom:18px;width:112px;height:112px;z-index:4;pointer-events:none}
+.goal-bike-world .generated-item-art{width:100%;height:100%;filter:drop-shadow(0 5px 8px rgba(83,49,28,.16))}
+@media(max-width:380px){.goal-bike-world{width:94px;height:94px;right:15px}.zone-bike .generated-item-art{width:94px;height:94px}}
+/* ===== END V22 ===== */

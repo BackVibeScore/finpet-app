@@ -431,10 +431,35 @@
     return `<span class="art ${n>=36?'art-extra':''}" style="--ax:${(cell%grid)*100/(grid-1)}%;--ay:${Math.floor(cell/grid)*100/(grid-1)}%" aria-hidden="true"></span>`;
   }
   function isPersistentShopItem(item){ return !!(item && C.world?.placements?.[item.id]); }
+  const GENERATED_ITEM_ART={
+    care_brush:'assets/item-haircut.webp',
+    health_vaccine:'assets/item-prevention.webp',
+    game_cinema:'assets/item-cinema.webp',
+    special_bike:'assets/item-bike.webp'
+  };
+  function generatedArt(src,label=''){
+    return `<img class="generated-item-art" src="${src}" alt="" aria-hidden="true" data-art-label="${esc(label)}">`;
+  }
   function shopItemIllustration(item){
+    const generated=GENERATED_ITEM_ART[item?.id];
+    if(generated)return generatedArt(generated,item?.name||'');
     const foodIndex={food_basic:0,food_snack:1,food_treat:2}[item?.id];
     if(foodIndex!=null)return `<span class="shop-food-art food-art-${foodIndex}" aria-hidden="true"></span>`;
     return illustration(item?.icon,item?.name||item?.label||item?.id||'');
+  }
+  function goalIllustration(g,view=goalView(g)){
+    if(g?.id==='bike')return generatedArt('assets/goal-bike.webp',view?.name||'Велосипед');
+    return illustration(view?.icon,view?.name||g?.name||g?.id||'');
+  }
+  function eventGeneratedIllustration(e){
+    if(e?.id==='e42')return generatedArt('assets/item-cinema.webp','Поход в кино');
+    if(e?.id==='e43')return generatedArt('assets/item-prevention.webp','Профилактика');
+    return '';
+  }
+  function eventIllustration(e){ return eventGeneratedIllustration(e)||illustration(e?.icon,e?.title||e?.id||''); }
+  function completedGoalWorldArt(area){
+    if(area==='park'&&state.completedGoals.includes('bike'))return `<div class="goal-bike-world">${generatedArt('assets/item-bike.webp','Велосипед')}</div>`;
+    return '';
   }
   function purchaseUseText(item){
     if(isPersistentShopItem(item)){
@@ -459,7 +484,7 @@
   function eventTeaser() {
     if (state.eventResolved) return `<div class="card"><div class="task-teaser"><div class="round-icon">✓</div><div><h3>Решение принято</h3><p>Можно заняться питомцем или завершить игровой день.</p></div></div></div>`;
     const e = currentEvent();
-    return `<button class="card task-teaser event-card" data-event="${e.id}"><div class="round-icon">${illustration(e.icon)}</div><div><h3>${e.title}</h3><p>${e.situation || e.text}</p></div><span class="chevron">›</span></button>`;
+    return `<button class="card task-teaser event-card" data-event="${e.id}"><div class="round-icon">${eventIllustration(e)}</div><div><h3>${e.title}</h3><p>${e.situation || e.text}</p></div><span class="chevron">›</span></button>`;
   }
 
   function normalizeWorkState() {
@@ -982,12 +1007,12 @@
   }
   function roomItemsHtml(area = state.currentWorldArea || 'home') {
     const entries = Object.entries(state.worldPlacements || {}).filter(([id,p]) => p.placed && p.area === area && state.inventory.some(x=>x.id===id));
-    return `<div class="placed-items">${entries.map(([id,p])=>{const i=C.items.find(x=>x.id===id);return i?`<div class="placed-item zone-${p.zone}" title="${esc(i.name)}">${illustration(i.icon,i.name||i.label||i.id)}</div>`:''}).join('')}${worldDecorHtml(area)}</div>`;
+    return `<div class="placed-items">${entries.map(([id,p])=>{const i=C.items.find(x=>x.id===id);return i?`<div class="placed-item zone-${p.zone}" title="${esc(i.name)}">${shopItemIllustration(i)}</div>`:''}).join('')}${worldDecorHtml(area)}</div>`;
   }
   function worldSceneHtml() {
     const area = state.currentWorldArea || 'home'; const act = petActivity(); const thought = petThought();
     const areas = (C.world?.areas || []).filter(a => state.worldProgress.areas.includes(a.id));
-    return `<div class="world-wrap"><div class="world-tabs">${areas.map(a=>`<button data-world-area="${a.id}" class="${area===a.id?'active':''}">${illustration(a.icon,a.name||a.label||a.id)} ${a.name}</button>`).join('')}</div><div class="world-scene area-${area}">${roomItemsHtml(area)}${sectionWorldRewardsHtml(area)}${thought?`<div class="ambient-thought">${thought}</div>`:''}<button class="pet-stage pet-stage-button pet-motion-${act.cls}" aria-label="Открыть состояние питомца" data-route="pet">${petBubble?`<div class="pet-bubble">${petBubble}</div>`:''}${petSVG()}</button><div class="pet-activity">${esc(state.pet.name)} ${act.text}</div></div></div>`;
+    return `<div class="world-wrap"><div class="world-tabs">${areas.map(a=>`<button data-world-area="${a.id}" class="${area===a.id?'active':''}">${illustration(a.icon,a.name||a.label||a.id)} ${a.name}</button>`).join('')}</div><div class="world-scene area-${area}">${roomItemsHtml(area)}${completedGoalWorldArt(area)}${sectionWorldRewardsHtml(area)}${thought?`<div class="ambient-thought">${thought}</div>`:''}<button class="pet-stage pet-stage-button pet-motion-${act.cls}" aria-label="Открыть состояние питомца" data-route="pet">${petBubble?`<div class="pet-bubble">${petBubble}</div>`:''}${petSVG()}</button><div class="pet-activity">${esc(state.pet.name)} ${act.text}</div></div></div>`;
   }
   function worldProgressCard() {
     const s = worldStageData(); const next = nextWorldStageData();
@@ -1020,7 +1045,7 @@
   function goalsScreen(){
     const junior=isJunior(),title=junior?'На что будем копить?':'Цели';
     const lead=junior?'Выбери вещь или приключение. Монеты из копилки будут приближать тебя к этой цели.':state.ageGroup==='15-17'?'Долгосрочная цель конкурирует с текущими расходами и может открывать новые возможности.':'Цели меняют не только цифру: после достижения могут открыться новые места и активности.';
-    return `<section class="screen">${topbar(title)}<p class="subtle">${lead}</p><div class="goal-list">${C.goals.map(g=>{const v=goalView(g),target=goalTarget(g),active=state.activeGoal===g.id,pct=active?progressPct():0,done=state.completedGoals.includes(g.id),remain=Math.max(0,target-state.wallet.savings);if(junior)return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${illustration(v.icon,v.name||v.label||v.id)}</div><div><h3>${esc(v.name)}</h3><p>${esc(v.note)}</p><div class="goal-kid-numbers"><span>Нужно: <b>${fmt(target)} монет</b></span><span>В копилке: <b>${fmt(state.wallet.savings)}</b></span><span>Осталось: <b>${fmt(remain)}</b></span></div>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">Примерно ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Готово</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Копим сюда':'Копить на это'}</button>`}</div>`;return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${illustration(v.icon,v.name||v.label||v.id)}</div><div><h3>${esc(v.name)}</h3><p>${fmt(target)} монет · ${esc(v.note)}</p>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">${fmt(state.wallet.savings)} / ${fmt(target)} · ≈ ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Открыто</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Выбрано':'Выбрать'}</button>`}</div>`}).join('')}</div><button class="btn secondary block" data-savings>Открыть копилку</button></section>`;
+    return `<section class="screen">${topbar(title)}<p class="subtle">${lead}</p><div class="goal-list">${C.goals.map(g=>{const v=goalView(g),target=goalTarget(g),active=state.activeGoal===g.id,pct=active?progressPct():0,done=state.completedGoals.includes(g.id),remain=Math.max(0,target-state.wallet.savings);if(junior)return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${goalIllustration(g,v)}</div><div><h3>${esc(v.name)}</h3><p>${esc(v.note)}</p><div class="goal-kid-numbers"><span>Нужно: <b>${fmt(target)} монет</b></span><span>В копилке: <b>${fmt(state.wallet.savings)}</b></span><span>Осталось: <b>${fmt(remain)}</b></span></div>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">Примерно ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Готово</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Копим сюда':'Копить на это'}</button>`}</div>`;return `<div class="card goal-select ${active?'active':''} ${done?'goal-done':''}"><div class="goal-icon">${goalIllustration(g,v)}</div><div><h3>${esc(v.name)}</h3><p>${fmt(target)} монет · ${esc(v.note)}</p>${active?`<div class="bar green"><i style="width:${pct}%"></i></div><p class="goal-detail">${fmt(state.wallet.savings)} / ${fmt(target)} · ≈ ${weeksToGoal()} нед.</p>`:''}${done?'<span class="tag need">Открыто</span>':''}</div>${done?'':`<button class="linkbtn" data-goal="${g.id}">${active?'Выбрано':'Выбрать'}</button>`}</div>`}).join('')}</div><button class="btn secondary block" data-savings>Открыть копилку</button></section>`;
   }
   function progressScreen() {
     const h=healthText(),ws=worldStageData(),next=nextWorldStageData();
@@ -1158,7 +1183,7 @@
   function completeActiveGoal(g) {
     const target=goalTarget(g); if(state.wallet.savings<target||state.completedGoals.includes(g.id))return false;
     const goalName=goalView(g).name,goalIcon=goalView(g).icon;
-    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalName}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',title:goalName,message:changes[0]||(isJunior()?'Готово! Ты накопил нужную сумму.':'Цель изменила игровой мир и открыла новый этап.'),icon:goalIcon,changes:[{label:isJunior()?'На что копили':'Цель',value:isJunior()?'Готово':'достигнута'},{label:'В копилке',value:`${fmt(state.wallet.savings)} ●`}],reason:isJunior()?'Ты понемногу клал монеты в копилку и собрал нужную сумму.':'Ты регулярно откладывал монеты и набрал нужную сумму. Рост питомца считается отдельно — по итогам всей недели.'}; return true;
+    state.wallet.savings=Math.max(0,state.wallet.savings-target); tx('goal_purchase',-target,'Цель',`Достигнута цель «${goalName}»`,'goal',{goalId:g.id}); state.completedGoals.push(g.id); const changes=applyGoalUnlock(g.id); adjustPet({mood:10}); unlock('strategist',true); track('goal_completed',{goalId:g.id}); track('long_term_goal_completed',{goalId:g.id,unlock:changes}); state.activeGoal=null; recalculateWorldProgress(); modal={type:'goalUnlocked',goalId:g.id,title:goalName,message:changes[0]||(isJunior()?'Готово! Ты накопил нужную сумму.':'Цель изменила игровой мир и открыла новый этап.'),icon:goalIcon,changes:[{label:isJunior()?'На что копили':'Цель',value:isJunior()?'Готово':'достигнута'},{label:'В копилке',value:`${fmt(state.wallet.savings)} ●`}],reason:isJunior()?'Ты понемногу клал монеты в копилку и собрал нужную сумму.':'Ты регулярно откладывал монеты и набрал нужную сумму. Рост питомца считается отдельно — по итогам всей недели.'}; return true;
   }
   function saveAmount(n) {
     n=Math.round(Number(n)||0);if(n<=0||n>state.wallet.balance){toast('Проверь сумму');return;}
@@ -1601,10 +1626,10 @@
       return `<div class="overlay" data-close-overlay><div class="sheet confirmation-sheet" data-sheet><div class="sheet-handle"></div><div class="preview-illustration">${learningArtwork('savings')}</div><div class="eyebrow">До операции</div><h2>Вернуть ${fmt(p.amount)} монет?</h2><div class="confirmation-facts four"><div><span>В копилке</span><b>${fmt(p.before)} → ${fmt(p.after)}</b></div><div><span>До цели останется</span><b>${p.remaining==null?'Цель не выбрана':fmt(p.remaining)+' ●'}</b></div><div><span>Срок был</span><b>${p.beforeWeeks==null?'—':`≈ ${p.beforeWeeks} нед.`}</b></div><div><span>Срок станет</span><b>${p.afterWeeks==null?'—':`≈ ${p.afterWeeks} нед.`}</b></div></div><div class="grid2"><button class="btn primary" data-confirm-withdraw="${p.amount}">Вернуть на баланс</button><button class="btn secondary" data-withdraw-cancel>Оставить в копилке</button></div></div></div>`;
     }
     if(modal.type==='resetConfirm')return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">Подтверждение</div><h2>Удалить локальный профиль?</h2><p>Будут удалены баланс, копилка, цели, покупки, прогресс, задания и история недель на этом устройстве.</p><div class="grid2"><button class="btn danger-button" data-confirm-reset>Удалить</button><button class="btn secondary" data-close-modal>Отмена</button></div></div></div>`;
-    if(modal.type==='event'){const e=C.events.find(x=>x.id===modal.id);if(!e)return '';return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">${e.categoryLabel||'Событие'}</div><h2>${e.title}</h2><p>${e.situation||e.text}</p><div class="stack">${e.choices.map((c,i)=>`<button class="choice event-choice" data-event-choice="${i}"><b>${c.text}</b>${choicePreview(c,e)}</button>`).join('')}</div></div></div>`;}
+    if(modal.type==='event'){const e=C.events.find(x=>x.id===modal.id);if(!e)return '';const eventArt=eventGeneratedIllustration(e);return `<div class="overlay" data-close-overlay><div class="sheet" data-sheet><div class="sheet-handle"></div><div class="eyebrow">${e.categoryLabel||'Событие'}</div><h2>${e.title}</h2>${eventArt?`<div class="event-generated-art">${eventArt}</div>`:''}<p>${e.situation||e.text}</p><div class="stack">${e.choices.map((c,i)=>`<button class="choice event-choice" data-event-choice="${i}"><b>${c.text}</b>${choicePreview(c,e)}</button>`).join('')}</div></div></div>`;}
     if(modal.type==='eventResult')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${modal.title||(isJunior()?'Что получилось':'Последствие')}</h2><div class="feedback-section"><h3>Что изменилось</h3>${modal.feedback?feedbackHtml(modal.feedback):'<p>Решение сохранено.</p>'}</div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.result||(isJunior()?'Это произошло после твоего выбора.':'Это последствие выбранного решения.'))}</p></div><div class="feedback-section"><h3>Что дальше</h3><button class="btn primary block" data-close-modal>Продолжить</button></div></div></div>`;
     if(modal.type==='delayedImpact'){const total=modal.charges.reduce((s,c)=>s+(c.paid||0),0);return `<div class="overlay"><div class="sheet delayed-sheet"><div class="sheet-handle"></div><div class="eyebrow">Произошло автоматически</div><h2>−${fmt(total)} монет</h2><div class="delayed-list">${modal.charges.map(c=>`<div><span>${esc(c.description)}</span><b>−${fmt(c.paid||0)}</b></div>`).join('')}</div><p class="subtle">${isJunior()?'Это случилось из-за выбора в прошлой неделе.':'Это последствие решения из прошлых игровых дней или недель.'}</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;}
-    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">${isJunior()?'Мы накопили!':'Большая цель'}</div><h2>${esc(modal.title)}</h2><div class="unlock-visual">${modal.icon||'✦'}</div><div class="feedback-section"><h3>Что изменилось</h3><div class="feedback-change-list">${(modal.changes||[]).map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div></div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.reason||modal.message)}</p></div><div class="feedback-section"><h3>Что дальше</h3><p>${esc(modal.message)}</p><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div></div>`;
+    if(modal.type==='goalUnlocked')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">${isJunior()?'Мы накопили!':'Большая цель'}</div><h2>${esc(modal.title)}</h2><div class="unlock-visual">${modal.goalId?goalIllustration(C.goals.find(x=>x.id===modal.goalId)):(modal.icon||'✦')}</div><div class="feedback-section"><h3>Что изменилось</h3><div class="feedback-change-list">${(modal.changes||[]).map(x=>`<div><span>${esc(x.label)}</span><b>${esc(x.value)}</b></div>`).join('')}</div></div><div class="feedback-section"><h3>Почему</h3><p>${esc(modal.reason||modal.message)}</p></div><div class="feedback-section"><h3>Что дальше</h3><p>${esc(modal.message)}</p><button class="btn primary block" data-close-modal>Посмотреть мир</button></div></div></div>`;
     if(modal.type==='financialFeedback')return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><h2>${esc(modal.title)}</h2>${financialFeedbackHtml(modal)}</div></div>`;
     if(modal.type==='saveFirst'){const n=Math.min(modal.amount||200,state.wallet.balance);return `<div class="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="eyebrow">Перед неделей</div><h2>${state.ageGroup==='7-11'?'Сразу положить в копилку?':'Отложить сначала?'}</h2><p>${isJunior()?'Не обязательно. Можно оставить монеты и решить позже.':'Это не обязательно. Можно оставить деньги свободными и решить позже.'}</p><div class="grid2"><button class="btn good" data-save="${n}">${isJunior()?'Положить':'Отложить'} ${fmt(n)}</button><button class="btn secondary" data-close-modal>Не сейчас</button></div></div></div>`;}
     if(modal.type==='workComplete')return `<div class="overlay"><div class="sheet work-complete-sheet"><div class="sheet-handle"></div><div class="eyebrow">Смена завершена</div><h2>+${fmt(modal.reward)} монет</h2><div class="feedback-grid"><div><span>Энергия</span><b>−${fmt(modal.energyCost)}</b></div><div><span>Баланс</span><b>${fmt(modal.balance)} ●</b></div><div><span>Осталось энергии</span><b>${Math.round(modal.energy)}⚡</b></div></div><p class="subtle">Деньги уже в обычном кошельке. Дальше решаешь сам: потратить, оставить или отложить.</p><button class="btn primary block" data-close-modal>Продолжить</button></div></div>`;

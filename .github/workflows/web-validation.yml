@@ -11,6 +11,7 @@ on:
       - 'styles.css'
       - 'index.html'
       - 'sw.js'
+      - 'assets/**'
       - 'tests/**'
       - '.github/workflows/web-validation.yml'
 
