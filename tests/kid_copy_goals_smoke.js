@@ -16,9 +16,9 @@ for(const route of ['home','budget','goals','savings','tasks']){const html=dev.s
 const shop=dev.setRoute('shop');assert(shop.includes('Нужно питомцу')&&shop.includes('Сытость +24'),'shop does not explain item effect');
 const budget=dev.setRoute('budget');assert(budget.includes('План готов')&&budget.includes('Оставлю'),'weekly plan wording incomplete');
 const visibleTaskText=C.tasks.filter(t=>(t.age||[]).includes('7-11')).flatMap(t=>[t.title,t.setup,...(t.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
-assert(!/\bрезерв\b/i.test(visibleTaskText),'junior task copy still uses резерв');
+assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|фактическ\w*|свободный остаток|периодический доход|дефицит|дисциплин\w*)\b/i.test(visibleTaskText),'junior task copy still uses adult financial wording');
 const visibleEventText=C.events.filter(e=>(e.age||[]).includes('7-11')).flatMap(e=>[e.categoryLabel,e.title,e.situation,...(e.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
-assert(!/\bрезерв\b/i.test(visibleEventText),'junior event copy still uses резерв');
+assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|фактическ\w*|свободный остаток|периодический доход|дефицит|дисциплин\w*)\b/i.test(visibleEventText),'junior event copy still uses adult financial wording');
 const help=C.helpTopics.filter(t=>(t.ages||[]).includes('7-11'));
 assert(help.some(x=>x.id==='budget'&&x.title==='План на неделю'&&x.text.includes('называется бюджетом')),'budget term is not taught after plain wording');
 assert(help.some(x=>x.id==='goal'&&x.title==='На что копим'),'goal help is not child-first');
@@ -26,4 +26,6 @@ assert(help.some(x=>x.id==='reserve'&&x.title==='На всякий случай'
 const source=fs.readFileSync(ROOT+'/app.js','utf8'),contentSource=fs.readFileSync(ROOT+'/content.js','utf8');
 assert(source.includes("moneyLabel(){ return isJunior()?'Монет осталось':'Баланс'; }"),'child money label helper missing');
 assert(contentSource.includes("name:'Планшет', target:1200")&&contentSource.includes("name:'Смарт-часы', target:3000"),'new goal source data missing');
+const demoText=dev.demo.periods().flatMap(p=>[p.title,p.lead,...p.steps.flatMap(s=>[s.label,s.hint])]).join(' ');
+assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|фактическ\w*|периодический доход|распределите доход)\b/i.test(demoText),'Demo still exposes adult financial wording');
 console.log('kid_copy_goals_smoke: OK');
