@@ -13,8 +13,8 @@ assert(!welcome.includes('premium-intro-card'),'duplicate HTML onboarding card m
 assert(welcome.includes("document.querySelector('.splash')) mountWelcome()"),'welcome must wait until splash is gone');
 assert(css.includes('.premium-art-backdrop')&&css.includes('.premium-art-frame')&&welcome.includes('fitAllArtFrames'),'crop-safe artwork sizing missing');
 assert(css.includes('object-fit:cover')&&/blur\((?:22|24)px\)/.test(css),'blurred bleed backdrop missing');
-assert(html.includes('welcome.css?v=20260918c')&&html.includes('welcome.js?v=20260918c'),'fixed onboarding is not cache-busted');
-assert(sw.includes('finpet-v15-directed-demo-20260919c'),'service worker cache was not bumped');
+assert(html.includes('welcome.css?v=20260918c')&&html.includes('welcome.js?v=20260921a'),'fixed onboarding is not cache-busted');
+assert(sw.includes('finpet-v16-kid-copy-goals-20260921a'),'service worker cache was not bumped');
 assert(html.includes('112756217'),'Yandex Metrika was lost');
 console.log('v10_premium_onboarding_smoke: OK');
 
