@@ -844,3 +844,35 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
   .owned-item-card{min-height:112px}
 }
 /* ===== END V26 ===== */
+
+
+/* ===== V27 HEALTH FOCUS CARDS ===== */
+.health-shop-note{
+  margin:14px 0 4px;
+  background:#eef1e7!important;
+  border:1px solid #d9dfcf;
+}
+.health-shop-note b{color:#40533b}
+.health-shop-note span{color:#687066}
+.health-item-card .shop-ico{
+  background:#f7f1e7!important;
+  border-color:#e6d9c9!important;
+}
+.health-item-card .generated-item-art{
+  width:88px!important;
+  height:88px!important;
+  object-fit:contain;
+}
+.health-item-card .item-effect-text{
+  color:#9b4b2d;
+  font-weight:700;
+}
+.health-item-card .tag.need{
+  background:#e2eee3;
+  color:#45694d;
+}
+@media(max-width:390px){
+  .health-shop-note{margin-top:12px}
+  .health-item-card .generated-item-art{width:78px!important;height:78px!important}
+}
+/* ===== END V27 ===== */
