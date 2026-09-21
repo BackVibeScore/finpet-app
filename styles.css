@@ -417,3 +417,17 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
 /* ===== V19 PET HEALTH + LOW NEED WARNINGS ===== */
 .low-needs-panel{display:grid;gap:6px;margin:10px 0 14px}.low-needs-panel button{width:100%;display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:center;text-align:left;border:1px solid #ead0c7;background:#fff8f4;color:var(--text);border-radius:13px;padding:10px}.low-needs-panel button>span:first-child{font-size:20px}.low-needs-panel button>span:nth-child(2){display:grid;gap:2px}.low-needs-panel b{font-size:12px}.low-needs-panel small{font-size:10px;line-height:1.35;color:var(--muted)}
 /* ===== END V19 ===== */
+
+
+/* ===== V20 SHOP SEMANTICS ===== */
+.shop-item-v2{grid-template-columns:68px minmax(0,1fr) auto}
+.shop-item-v2 .shop-ico{width:68px;height:68px;border-radius:17px;overflow:hidden;background:#f7efe5}
+.shop-food-art{display:block;width:100%;height:100%;background-image:url('./assets/food-items.webp');background-repeat:no-repeat;background-size:300% 100%;background-position-y:center}
+.shop-food-art.food-art-0{background-position-x:0%}
+.shop-food-art.food-art-1{background-position-x:50%}
+.shop-food-art.food-art-2{background-position-x:100%}
+.food-action-icon{overflow:hidden;border-radius:13px}
+.food-action-icon .shop-food-art{width:42px;height:42px}
+.quick-actions .action .food-action-icon{display:grid;place-items:center}
+@media(max-width:370px){.shop-item-v2{grid-template-columns:58px minmax(0,1fr) auto}.shop-item-v2 .shop-ico{width:58px;height:58px}}
+/* ===== END V20 ===== */

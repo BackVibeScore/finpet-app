@@ -430,6 +430,23 @@
     const n=names[label]??symbols[symbol]??33, grid=n>=36?3:6, cell=n>=36?n-36:n;
     return `<span class="art ${n>=36?'art-extra':''}" style="--ax:${(cell%grid)*100/(grid-1)}%;--ay:${Math.floor(cell/grid)*100/(grid-1)}%" aria-hidden="true"></span>`;
   }
+  function isPersistentShopItem(item){ return !!(item && C.world?.placements?.[item.id]); }
+  function shopItemIllustration(item){
+    const foodIndex={food_basic:0,food_snack:1,food_treat:2}[item?.id];
+    if(foodIndex!=null)return `<span class="shop-food-art food-art-${foodIndex}" aria-hidden="true"></span>`;
+    return illustration(item?.icon,item?.name||item?.label||item?.id||'');
+  }
+  function purchaseUseText(item){
+    if(isPersistentShopItem(item)){
+      if(item.category==='Одежда')return 'Покупка добавлена в гардероб и остаётся у питомца.';
+      if(item.category==='Интерьер')return 'Покупка появилась в комнате и остаётся в мире питомца.';
+      return 'Покупка появилась в подходящем месте мира питомца.';
+    }
+    if(item.category==='Еда')return 'Еда использована сразу и изменила состояние питомца.';
+    if(item.category==='Здоровье')return 'Покупка применена сразу. В комнате она не остаётся отдельным предметом.';
+    if(item.id==='game_cinema'||item.id==='special_ticket')return 'Это разовое событие. После покупки оно не остаётся предметом в комнате.';
+    return 'Эффект покупки применён сразу.';
+  }
   function planInput(label, id, value, hint) {
     return `<label class="plan-row"><div><b>${label}</b><span>${hint}</span></div><div class="plan-amount"><input id="${id}" type="number" min="0" step="10" value="${Math.max(0, Math.round(value))}" inputmode="numeric"><span>●</span></div></label>`;
   }
@@ -513,8 +530,8 @@
     return `<section class="screen">${topbar('Магазин', true)}
       <div class="tabs">${cats.map(c => `<button class="chip ${c === cat ? 'active' : ''}" data-shop-cat="${c}">${c}</button>`).join('')}</div>
       <div class="shop-list">${items.map(item => {
-        const owned = item.cosmetic && state.inventory.some(x => x.id === item.id);
-        return `<div class="card shop-item shop-item-v2"><div class="shop-ico">${illustration(item.icon,item.name||item.label||item.id)}</div><div><h3>${item.name}</h3><p>${isJunior()?(item.need?'Нужно питомцу':'Для радости'):(item.need?'Базовая потребность':'Желание / улучшение мира')}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : (isJunior()?'Хочу':'Желание')}</span><div class="item-effect-text">${esc(itemEffectText(item))}</div><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
+        const owned = isPersistentShopItem(item) && state.inventory.some(x => x.id === item.id);
+        return `<div class="card shop-item shop-item-v2"><div class="shop-ico ${item.category==='Еда'?'food-visual':''}">${shopItemIllustration(item)}</div><div><h3>${item.name}</h3><p>${isJunior()?(item.need?'Нужно питомцу':'Для радости'):(item.need?'Базовая потребность':'Желание / улучшение мира')}</p><span class="tag ${item.need ? 'need' : 'want'}">${item.need ? 'Нужно' : (isJunior()?'Хочу':'Желание')}</span><div class="item-effect-text">${esc(itemEffectText(item))}</div><div class="item-context">${purchaseContext(item)}</div></div><div class="center"><div class="price">${fmt(item.price)} ●</div><button class="linkbtn" data-buy="${item.id}" ${owned ? 'disabled' : ''}>${owned ? 'Уже есть' : 'Купить'}</button></div></div>`;
       }).join('')}</div>
     </section>`;
   }
@@ -1085,14 +1102,15 @@
   }
 
   function buyItem(id) {
-    const item=C.items.find(x=>x.id===id);if(!item)return;if(item.cosmetic&&state.inventory.some(x=>x.id===item.id)){toast('Этот предмет уже есть');return;}
-    const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,beforeHealth=state.pet.health,delay=item.need?0:purchaseGoalDelay(item.price),beforeFree=freeMoney();
+    const item=C.items.find(x=>x.id===id);if(!item)return;const persistent=isPersistentShopItem(item);if(persistent&&state.inventory.some(x=>x.id===item.id)){toast('Этот предмет уже есть');return;}
+    const beforeBalance=state.wallet.balance,beforeMood=state.pet.mood,beforeHealth=state.pet.health,beforeSatiety=state.pet.satiety,delay=item.need?0:purchaseGoalDelay(item.price),beforeFree=freeMoney();
     if(spend(item.price,item.need?'Необходимые расходы':'Желания',item.name,'shop',{itemId:item.id})){
-      state.inventory.push({id:item.id,boughtAt:Date.now(),week:state.wallet.week,day:state.wallet.day}); ensurePlacement(item.id);
+      if(persistent){state.inventory.push({id:item.id,boughtAt:Date.now(),week:state.wallet.week,day:state.wallet.day});ensurePlacement(item.id);}
       if(item.need){state.wallet.needsSpent+=item.price;state.stats.needsFirst++;} else if(item.price>beforeFree||(planForWeek()&&actualsForWeek().wants>planForWeek().wants)){state.stats.impulsePurchases++;track('impulse_purchase',{itemId:item.id,price:item.price});}
-      const itemEffect={...(item.effect||{})};delete itemEffect.development;adjustPet(itemEffect);if(item.cures&&state.healthCondition===item.cures)state.healthCondition=null;if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;petBubble=state.ageGroup==='15-17'?'Пространство изменилось':`${illustration(item.icon,item.name||item.label||item.id)} Теперь это здесь`;
+      const itemEffect={...(item.effect||{})};delete itemEffect.development;adjustPet(itemEffect);if(item.cures&&state.healthCondition===item.cures)state.healthCondition=null;if(state.petWish&&state.petWish.itemId===item.id)state.petWish=null;
       checkAchievements();recalculateHealth();recalculateWorldProgress();save();
       const changes=[{label:moneyLabel(),value:`${fmt(beforeBalance)} → ${fmt(state.wallet.balance)} ●`}];
+      if(state.pet.satiety!==beforeSatiety)changes.push({label:'Сытость',value:`${beforeSatiety} → ${state.pet.satiety}`});
       if(state.pet.mood!==beforeMood)changes.push({label:'Настроение',value:`${beforeMood} → ${state.pet.mood}`});
       if(state.pet.health!==beforeHealth)changes.push({label:'Здоровье',value:`${beforeHealth} → ${state.pet.health}`});
       if(delay>0)changes.push({label:isJunior()?'До покупки':'До цели',value:`примерно +${delay} нед.`});
@@ -1100,7 +1118,7 @@
       modal=buildFinancialFeedback(
         `Куплено: ${item.name}`,
         changes,
-        isJunior()?(item.need?'Эта вещь нужна питомцу. Она помогает заботиться о нём.':'Это хотелка. Она может порадовать питомца, но монет на другие вещи станет меньше.'):(item.need?'Это обязательная покупка: она поддерживает состояние питомца и учитывается в плане необходимых расходов.':'Это необязательная покупка: она может порадовать питомца, но уменьшает сумму для других решений.'),
+        isJunior()?purchaseUseText(item):(item.need?'Покупка применена. Она поддерживает состояние питомца и учитывается в необходимых расходах.':'Покупка применена и уменьшила сумму для других решений.'),
         [{label:'Продолжить',route:'shop'},{label:isJunior()?'Посмотреть план':'Открыть бюджет',route:'budget'}]
       );
       track('purchase_completed',{itemId:item.id,price:item.price,need:!!item.need,balanceBefore:beforeBalance,balanceAfter:state.wallet.balance,goalDelay:delay});if(delay>0)track('goal_delayed',{goalId:state.activeGoal,reason:'purchase',weeks:delay});render();
@@ -1610,7 +1628,7 @@
     document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{route=route==='help'?(helpReturnRoute||'profile'):['adult','adultGate'].includes(route)?'profile':(route==='shop'||route==='task'||route==='pet'||route==='sidejob')?'home':route==='savings'?'budget':'profile';taskResult=null;render();});
     document.querySelectorAll('[data-help]').forEach(b=>b.onclick=()=>{helpReturnRoute=route;state.helpLastTopic=null;route='help';track('help_opened',{source:helpReturnRoute});save();render();window.scrollTo(0,0);});
     document.querySelectorAll('[data-help-topic]').forEach(b=>b.onclick=()=>{state.helpLastTopic=b.dataset.helpTopic;track('help_topic_opened',{topicId:state.helpLastTopic});save();render();window.scrollTo(0,0);});document.querySelectorAll('[data-help-list]').forEach(b=>b.onclick=()=>{state.helpLastTopic=null;save();render();});document.querySelectorAll('[data-replay-intro]').forEach(b=>b.onclick=startIntroReplay);
-    document.querySelectorAll('[data-open-task]').forEach(b=>b.onclick=()=>{taskScreen.id=b.dataset.openTask;route='task';taskResult=null;render();window.scrollTo(0,0);});document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>quickAction(b.dataset.action));document.querySelectorAll('[data-shop-cat]').forEach(b=>b.onclick=()=>{shopScreen.cat=b.dataset.shopCat;render();});document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>openPurchaseConfirmation(b.dataset.buy));
+    document.querySelectorAll('[data-open-task]').forEach(b=>b.onclick=()=>{taskScreen.id=b.dataset.openTask;route='task';taskResult=null;render();window.scrollTo(0,0);});document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>quickAction(b.dataset.action));document.querySelectorAll('[data-shop-cat]').forEach(b=>b.onclick=()=>{shopScreen.cat=b.dataset.shopCat;render();});document.querySelectorAll('[data-shop-open]').forEach(b=>b.onclick=()=>{shopScreen.cat=b.dataset.shopOpen;route='shop';render();window.scrollTo(0,0);});document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>openPurchaseConfirmation(b.dataset.buy));
     document.querySelectorAll('[data-confirm-buy]').forEach(b=>b.onclick=()=>confirmPurchase(b.dataset.confirmBuy));document.querySelectorAll('[data-purchase-cancel],[data-withdraw-cancel]').forEach(b=>b.onclick=cancelTrackedModal);document.querySelectorAll('[data-modal-route]').forEach(b=>b.onclick=()=>{const target=b.dataset.modalRoute;if(modal?.type==='purchaseConfirm')track('purchase_confirmation_cancelled',{itemId:modal.itemId,next:target});save();modal=null;route=target;if(target==='sidejob')track('side_job_opened',{source:'purchase_shortage'});render();});
     document.querySelectorAll('[data-task-choice]').forEach(b=>b.onclick=()=>chooseTask(Number(b.dataset.taskChoice)));document.querySelectorAll('[data-finish-task]').forEach(b=>b.onclick=finishTask);document.querySelectorAll('[data-task-allocate]').forEach(b=>b.onclick=resolveAllocationTask);document.querySelectorAll('[data-task-slider]').forEach(b=>b.onclick=resolveSliderTask);document.querySelectorAll('[data-task-subscriptions]').forEach(b=>b.onclick=resolveSubscriptionsTask);
     document.querySelectorAll('[data-savings]').forEach(b=>b.onclick=()=>{modal=null;route='savings';render();window.scrollTo(0,0);});document.querySelectorAll('[data-goal]').forEach(b=>b.onclick=()=>selectGoal(b.dataset.goal));document.querySelectorAll('[data-event]').forEach(b=>b.onclick=()=>openEvent(b.dataset.event));document.querySelectorAll('[data-event-choice]').forEach(b=>b.onclick=()=>resolveEvent(Number(b.dataset.eventChoice)));
@@ -1763,11 +1781,11 @@
       ${sectionHomeCard()}
       <div class="section-title compact-title"><h2>${easy?'Задание':'Активное задание'}</h2><button data-route="tasks">Все</button></div>${task?`<div class="active-task-card"><div class="active-task-art">${learningArtwork(task.cyberSafety?'help':'needs')}</div><div><span>${taskTypeLabel(task.mechanicType)}</span><h3>${esc(task.title)}</h3><p>${easy?'Получишь':'Награда'} +${fmt(task.reward)} ●</p></div><button class="btn secondary" data-open-task="${task.id}">Начать</button></div>`:`<div class="empty-state small-empty">${learningArtwork('savings')}<div><b>Все доступные задания выполнены</b><button class="linkbtn" data-route="tasks">Открыть список</button></div></div>`}
       <div class="section-title compact-title"><h2>${easy?'Что случилось':'Текущая ситуация'}</h2><span class="soft-label">${event?.categoryLabel||'событие'}</span></div>${eventTeaser()}
-      ${emergencyCareButtonsHtml()}<div class="section-title"><h2>Что сделать?</h2></div><div class="quick-actions"><button class="action" data-action="feed"><span class="ico">${illustration('🥣')}</span><b>Покормить</b><small>40 ●</small></button><button class="action" data-action="play"><span class="ico">${illustration('⚽')}</span><b>Поиграть</b><small>80 ●</small></button><button class="action" data-action="care"><span class="ico">${illustration('🫧')}</span><b>Здоровье</b><small>60 ●</small></button><button class="action" data-route="shop"><span class="ico">${illustration('','shop')}</span><b>Магазин</b><small>выбрать</small></button></div>${medium?`<button class="work-entry" data-route="sidejob"><span class="work-entry-icon">${illustration('◇')}</span><span><b>${state.workSession?'Продолжить смену':'Подработка'}</b><small>${workShiftStatusShort()} · дополнительный доход</small></span><span aria-hidden="true">›</span></button>`:''}${wishHtml()}${worldProgressCard()}${criticalPetNeeds().length?'<p class="end-day-critical-note">Перед новым днём нужно помочь питомцу</p>':''}<button class="btn primary block end-day ${criticalPetNeeds().length?'needs-care':''}" data-new-day>Завершить день ${state.wallet.day}</button></section>`;
+      ${emergencyCareButtonsHtml()}<div class="section-title"><h2>Что сделать?</h2></div><div class="quick-actions"><button class="action" data-shop-open="Еда"><span class="ico food-action-icon">${shopItemIllustration(C.items.find(x=>x.id==='food_basic'))}</span><b>Покормить</b><small>выбрать еду</small></button><button class="action" data-action="play"><span class="ico">${illustration('⚽')}</span><b>Поиграть</b><small>80 ●</small></button><button class="action" data-action="care"><span class="ico">${illustration('🫧')}</span><b>Здоровье</b><small>60 ●</small></button><button class="action" data-route="shop"><span class="ico">${illustration('','shop')}</span><b>Магазин</b><small>выбрать</small></button></div>${medium?`<button class="work-entry" data-route="sidejob"><span class="work-entry-icon">${illustration('◇')}</span><span><b>${state.workSession?'Продолжить смену':'Подработка'}</b><small>${workShiftStatusShort()} · дополнительный доход</small></span><span aria-hidden="true">›</span></button>`:''}${wishHtml()}${worldProgressCard()}${criticalPetNeeds().length?'<p class="end-day-critical-note">Перед новым днём нужно помочь питомцу</p>':''}<button class="btn primary block end-day ${criticalPetNeeds().length?'needs-care':''}" data-new-day>Завершить день ${state.wallet.day}</button></section>`;
   }
 
   function petScreen(){
-    return `<section class="screen">${topbar(state.pet.name,true)}${worldSceneHtml()}${lowPetNeedsHtml()}<div class="section-title"><h2>Как себя чувствует</h2></div><div class="stat-row">${miniStat('Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div><div class="section-title"><h2>Забота о здоровье</h2></div>${emergencyCareButtonsHtml()}<div class="grid2"><button class="btn secondary" data-action="feed">Покормить · 40</button><button class="btn secondary" data-action="care">Здоровье · 60</button><button class="btn secondary" data-action="play">Поиграть · 80</button><button class="btn secondary" data-route="shop">Магазин</button></div><div class="section-title"><h2>Что появилось в мире</h2></div><div class="inventory-strip">${state.inventory.length?state.inventory.slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(Boolean).slice(0,16).map(i=>`<div class="inventory-chip">${illustration(i.icon,i.name||i.label||i.id)}<span>${i.name}</span></div>`).join(''):`<div class="need-note">Первые покупки будут видны прямо в пространстве.</div>`}</div></section>`;
+    return `<section class="screen">${topbar(state.pet.name,true)}${worldSceneHtml()}${lowPetNeedsHtml()}<div class="section-title"><h2>Как себя чувствует</h2></div><div class="stat-row">${miniStat('Сытость',state.pet.satiety,'🥣')}${miniStat('Настроение',state.pet.mood,'☻')}${miniStat('Энергия',state.pet.energy,'⚡')}${miniStat('Здоровье',state.pet.health,'✦')}</div><div class="section-title"><h2>Забота о здоровье</h2></div>${emergencyCareButtonsHtml()}<div class="grid2"><button class="btn secondary" data-shop-open="Еда">Выбрать еду</button><button class="btn secondary" data-action="care">Здоровье · 60</button><button class="btn secondary" data-action="play">Поиграть · 80</button><button class="btn secondary" data-route="shop">Магазин</button></div><div class="section-title"><h2>Что появилось в мире</h2></div><div class="inventory-strip">${state.inventory.slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(i=>i&&isPersistentShopItem(i)).slice(0,16).length?state.inventory.slice().reverse().map(x=>C.items.find(i=>i.id===x.id)).filter(i=>i&&isPersistentShopItem(i)).slice(0,16).map(i=>`<div class="inventory-chip">${illustration(i.icon,i.name||i.label||i.id)}<span>${i.name}</span></div>`).join(''):`<div class="need-note">Здесь появятся вещи, которые остаются у питомца: игрушки, одежда и предметы комнаты.</div>`}</div></section>`;
   }
 
   function budgetScreen(){
