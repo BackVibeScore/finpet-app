@@ -14,7 +14,7 @@ assert(s.pet.satiety>before.pet.satiety,'food effect missing');
 assert(!s.inventory.some(x=>x.id==='food_basic'),'consumable food incorrectly stored in inventory');
 assert(!s.worldPlacements.food_basic,'consumable food incorrectly placed in room');
 
-d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');assert(s.currentWorldArea==='home','durable purchase did not select its logical world area');assert(d.getModal()?.actions?.[0]?.label==='Посмотреть в комнате','durable purchase feedback does not lead to room');
+d.actions.buyItem('interior_lamp');s=d.getState();assert(s.inventory.some(x=>x.id==='interior_lamp')&&s.worldPlacements.interior_lamp?.placed,'durable room item no longer persists');assert(s.currentWorldArea==='home','durable purchase did not select its logical world area');assert(d.getModal()?.actions?.[0]?.label==='Посмотреть мою вещь','durable purchase feedback does not expose ownership');
 const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8'),sw=fs.readFileSync(ROOT+'/sw.js','utf8');
 assert(src.includes('food_basic:0,food_snack:1,food_treat:2')&&src.includes('shopItemIllustration(item)'),'food illustration mapping missing');
 assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation-food-art':''}")&&src.includes('shopItemIllustration(p.item)'),'purchase confirmation does not use food artwork');
