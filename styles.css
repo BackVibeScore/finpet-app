@@ -573,3 +573,35 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
   .home-screen .quick-actions-v2 .action small{font-size:8px!important}
 }
 /* ===== END V23 ===== */
+
+
+/* ===== V24 CONSISTENT ACTION NAVIGATION ===== */
+.home-screen .quick-actions-v2 .action,
+.home-screen .quick-actions-v2 .action:nth-child(1),
+.home-screen .quick-actions-v2 .action:nth-child(2),
+.home-screen .quick-actions-v2 .action:nth-child(3),
+.home-screen .quick-actions-v2 .action:nth-child(4){
+  background:#fffaf4!important;
+  border-color:#e7d9ca!important;
+}
+.home-screen .quick-actions-v2 .action .ico,
+.home-screen .quick-actions-v2 .food-action-icon{
+  background:#f6efe6!important;
+  border:1px solid #ecdfd1;
+}
+.home-screen .quick-actions-v2 .action b{margin-top:2px}
+.home-screen .quick-actions-v2 .action small{min-height:20px;display:flex!important;align-items:flex-start;justify-content:center}
+.pet-detail-stage + .low-needs-panel + .section-title + .stat-row + .section-title + .emergency-care-panel + .grid2,
+.pet-detail-stage + .section-title + .stat-row + .section-title + .grid2{
+  gap:8px;
+}
+.pet-screen .grid2 .btn.secondary{
+  min-height:50px;
+  background:#fffaf4;
+  border:1px solid #e7d9ca;
+  color:var(--text);
+}
+@media(max-width:390px){
+  .home-screen .quick-actions-v2 .action small{min-height:18px}
+}
+/* ===== END V24 ===== */
