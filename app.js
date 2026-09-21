@@ -431,17 +431,19 @@
     return `<span class="art ${n>=36?'art-extra':''}" style="--ax:${(cell%grid)*100/(grid-1)}%;--ay:${Math.floor(cell/grid)*100/(grid-1)}%" aria-hidden="true"></span>`;
   }
   function isPersistentShopItem(item){ return !!(item && C.world?.placements?.[item.id]); }
-  const GENERATED_ITEM_ART={
-    care_brush:'assets/item-haircut.webp',
-    health_vaccine:'assets/item-prevention.webp',
-    game_cinema:'assets/item-cinema.webp',
-    special_bike:'assets/item-bike.webp'
-  };
+  function generatedItemArt(itemId){
+    return ({
+      care_brush:'assets/item-haircut.webp',
+      health_vaccine:'assets/item-prevention.webp',
+      game_cinema:'assets/item-cinema.webp',
+      special_bike:'assets/item-bike.webp'
+    })[itemId]||null;
+  }
   function generatedArt(src,label=''){
     return `<img class="generated-item-art" src="${src}" alt="" aria-hidden="true" data-art-label="${esc(label)}">`;
   }
   function shopItemIllustration(item){
-    const generated=GENERATED_ITEM_ART[item?.id];
+    const generated=generatedItemArt(item?.id);
     if(generated)return generatedArt(generated,item?.name||'');
     const foodIndex={food_basic:0,food_snack:1,food_treat:2}[item?.id];
     if(foodIndex!=null)return `<span class="shop-food-art food-art-${foodIndex}" aria-hidden="true"></span>`;
