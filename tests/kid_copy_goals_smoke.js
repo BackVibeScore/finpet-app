@@ -13,7 +13,7 @@ assert(!goalsHtml.includes('Финансовая цель'),'junior goals expose
 assert(dev.getState().activeGoal==='home'&&goalsHtml.includes('Планшет'),'legacy active goal id no longer maps to new goal');
 const forbidden=/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|накопления|свободный остаток|периодический доход)\b/i;
 for(const route of ['home','budget','goals','savings','tasks']){const html=dev.setRoute(route);assert(!forbidden.test(html),'adult wording leaked into junior '+route+': '+(html.match(forbidden)||[])[0])}
-const shop=dev.setRoute('shop');assert(shop.includes('Нужно питомцу')&&shop.includes('Сытость +24'),'shop does not explain item effect');
+const shop=dev.setRoute('shop');assert(shop.includes('Нужно питомцу')&&shop.includes('Сытость +30')&&shop.includes('Здоровье +5'),'shop does not explain item effect');
 const budget=dev.setRoute('budget');assert(budget.includes('Мой план на неделю')&&budget.includes('План сохранён')&&budget.includes('Пока не трачу'),'weekly plan tracking wording incomplete');
 const weekStart=dev.setRoute('weekStart');assert(weekStart.includes('Как хочешь потратить монеты?')&&weekStart.includes('Это только план')&&weekStart.includes('Пока не трачу')&&weekStart.includes('Запомнить план'),'week planning is not presented as a non-binding plan');
 const visibleTaskText=C.tasks.filter(t=>(t.age||[]).includes('7-11')).flatMap(t=>[t.title,t.setup,...(t.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
