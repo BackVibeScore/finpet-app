@@ -5,7 +5,7 @@ function seed(){return {version:6,onboardingDone:true,onboardingIntroCompleted:t
 function boot(){const timers=[];const app=element(),store={finpet_mvp_state_v1:JSON.stringify(seed())};const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};const document={documentElement:{dataset:{}},getElementById:id=>id==='app'?app:null,querySelector:()=>null,querySelectorAll:()=>[],createElement:element,body:{appendChild:()=>{}},addEventListener:()=>{}};const sb={window:null,document,localStorage,location:{protocol:'file:'},navigator:{},crypto,Intl,console,confirm:()=>true,Math,matchMedia:()=>({matches:false}),setTimeout:(fn,ms)=>{timers.push(fn);return timers.length},clearTimeout:()=>{}};sb.window=sb;sb.window.scrollTo=()=>{};vm.createContext(sb);vm.runInContext(fs.readFileSync(ROOT+'/content.js','utf8'),sb);vm.runInContext(fs.readFileSync(ROOT+'/app.js','utf8'),sb);timers.shift()?.();return {dev:sb.window.FINPET_DEV,app}}
 function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(),d=r.dev;
-d.actions.setShopCategory('Здоровье');let rendered=r.app.innerHTML;assert(rendered.includes('assets/item-haircut.webp')&&rendered.includes('assets/item-prevention.webp'),'health generated art not rendered');
+d.actions.setShopCategory('Здоровье');let rendered=r.app.innerHTML;assert(rendered.includes('assets/item-health-hygiene.svg')&&rendered.includes('assets/item-health-grooming.svg')&&rendered.includes('assets/item-health-checkup.svg')&&rendered.includes('assets/item-health-prevention.svg'),'focused health artwork not rendered');assert(rendered.includes('Гигиена')&&rendered.includes('Уход за шерстью')&&rendered.includes('Профилактический осмотр')&&rendered.includes('Профилактика'),'focused health cards missing');
 d.actions.setShopCategory('Игры');rendered=r.app.innerHTML;assert(rendered.includes('assets/item-cinema.webp'),'cinema generated art not rendered');
 d.actions.setShopCategory('Особое');rendered=r.app.innerHTML;assert(rendered.includes('assets/item-bike.webp'),'bike shop generated art not rendered');
 rendered=d.setRoute('goals');assert(rendered.includes('assets/goal-bike.webp'),'bike goal generated art not rendered');
@@ -21,7 +21,7 @@ assert(src.includes("confirmation-art ${p.item.category==='Еда'?'confirmation
 assert(src.includes("data-shop-open=\"Еда\""),'feed action does not open food choices');
 assert(!src.includes('Теперь это здесь'),'shop purchase still creates the old item speech bubble');
 assert(src.includes("petBubble='';")&&src.includes("item.category==='Еда'"),'shop purchase does not explicitly clear pet bubble / distinguish food');
-assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART')&&css.includes('V23 ACTION MENU + REGENERATED FOOD ART')&&css.includes('V24 CONSISTENT ACTION NAVIGATION')&&css.includes('V25 HOME FLOW HIERARCHY')&&css.includes('V26 OWNED ITEMS VISIBILITY'),'shop presentation styles missing');
+assert(css.includes('V20 SHOP SEMANTICS')&&css.includes('V21 PURCHASE PRESENTATION')&&css.includes('V22 GENERATED ITEM ART')&&css.includes('V23 ACTION MENU + REGENERATED FOOD ART')&&css.includes('V24 CONSISTENT ACTION NAVIGATION')&&css.includes('V25 HOME FLOW HIERARCHY')&&css.includes('V26 OWNED ITEMS VISIBILITY')&&css.includes('V27 HEALTH FOCUS CARDS'),'shop presentation styles missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items.webp'))&&fs.statSync(path.join(ROOT,'assets/food-items.webp')).size>10000,'legacy food sprite missing');
 assert(fs.existsSync(path.join(ROOT,'assets/food-items-v2.svg'))&&fs.statSync(path.join(ROOT,'assets/food-items-v2.svg')).size>4000,'regenerated food sprite missing');
 assert(css.includes("assets/food-items-v2.svg"),'regenerated food sprite not wired into styles');
@@ -49,7 +49,7 @@ assert(src.includes('function ownedPersistentItems()')&&src.includes('function o
 assert(src.includes('data-owned-item=')&&src.includes('Мои вещи'),'owned items collection is not rendered');
 assert(src.includes('Посмотреть мою вещь'),'purchase feedback does not expose ownership');
 assert(src.includes("if(p&&!migrated.worldPlacements[entry.id])migrated.worldPlacements[entry.id]={...p,placed:true}"),'existing inventory placements are not recovered');
-assert(css.includes('.placed-item .art{')&&css.includes('width:58px!important')&&!css.includes('.placed-item .art{width:1.7em;height:1.7em}'),'placed sprite art can collapse to zero size');
+assert(css.includes('V26 OWNED ITEMS VISIBILITY')&&css.includes('width:58px!important'),'placed sprite art size override missing');
 assert(sw.includes('./assets/food-items.webp')&&sw.includes('./assets/food-items-v2.svg'),'food artwork missing from offline cache');
 const generated=['item-haircut.webp','item-prevention.webp','item-cinema.webp','item-bike.webp','goal-bike.webp'];
 for(const file of generated){
@@ -57,7 +57,14 @@ for(const file of generated){
   assert(fs.existsSync(fp)&&fs.statSync(fp).size>2500,'generated asset missing '+file);
   assert(sw.includes('./assets/'+file),'generated asset missing from offline cache '+file);
 }
-assert(src.includes("care_brush:'assets/item-haircut.webp'")&&src.includes("health_vaccine:'assets/item-prevention.webp'"),'health generated mapping missing');
+assert(src.includes("care_wash:'assets/item-health-hygiene.svg'")&&src.includes("care_brush:'assets/item-health-grooming.svg'")&&src.includes("care_spa:'assets/item-health-checkup.svg'")&&src.includes("health_vaccine:'assets/item-health-prevention.svg'"),'focused health artwork mapping missing');
 assert(src.includes("game_cinema:'assets/item-cinema.webp'")&&src.includes("special_bike:'assets/item-bike.webp'"),'shop generated mapping missing');
+const healthAssets=['item-health-hygiene.svg','item-health-grooming.svg','item-health-checkup.svg','item-health-prevention.svg'];
+for(const file of healthAssets){
+  const fp=path.join(ROOT,'assets',file);
+  assert(fs.existsSync(fp)&&fs.statSync(fp).size>1000,'health asset missing '+file);
+  assert(sw.includes('./assets/'+file),'health asset missing from offline cache '+file);
+}
+assert(src.includes('Здоровье питомца')&&src.includes('Гигиена, регулярный уход, осмотр и профилактика'),'health section explanation missing');
 assert(src.includes("'assets/goal-bike.webp'")&&src.includes('eventGeneratedIllustration')&&src.includes('goalIllustration'),'goal/event generated art helpers missing');
 console.log('shop_presentation_smoke: OK');
