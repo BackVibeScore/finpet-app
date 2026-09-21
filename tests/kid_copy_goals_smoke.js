@@ -14,7 +14,8 @@ assert(dev.getState().activeGoal==='home'&&goalsHtml.includes('Планшет'),
 const forbidden=/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|накопления|свободный остаток|периодический доход)\b/i;
 for(const route of ['home','budget','goals','savings','tasks']){const html=dev.setRoute(route);assert(!forbidden.test(html),'adult wording leaked into junior '+route+': '+(html.match(forbidden)||[])[0])}
 const shop=dev.setRoute('shop');assert(shop.includes('Нужно питомцу')&&shop.includes('Сытость +24'),'shop does not explain item effect');
-const budget=dev.setRoute('budget');assert(budget.includes('План готов')&&budget.includes('Оставлю'),'weekly plan wording incomplete');
+const budget=dev.setRoute('budget');assert(budget.includes('Мой план на неделю')&&budget.includes('План сохранён')&&budget.includes('Пока не трачу'),'weekly plan tracking wording incomplete');
+const weekStart=dev.setRoute('weekStart');assert(weekStart.includes('Как хочешь потратить монеты?')&&weekStart.includes('Это только план')&&weekStart.includes('Пока не трачу')&&weekStart.includes('Запомнить план'),'week planning is not presented as a non-binding plan');
 const visibleTaskText=C.tasks.filter(t=>(t.age||[]).includes('7-11')).flatMap(t=>[t.title,t.setup,...(t.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
 assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|фактическ\w*|свободный остаток|периодический доход|дефицит|дисциплин\w*)\b/i.test(visibleTaskText),'junior task copy still uses adult financial wording');
 const visibleEventText=C.events.filter(e=>(e.age||[]).includes('7-11')).flatMap(e=>[e.categoryLabel,e.title,e.situation,...(e.choices||[]).flatMap(c=>[c.text,c.result])]).filter(Boolean).join(' ');
@@ -26,6 +27,8 @@ assert(help.some(x=>x.id==='reserve'&&x.title==='На всякий случай'
 const source=fs.readFileSync(ROOT+'/app.js','utf8'),contentSource=fs.readFileSync(ROOT+'/content.js','utf8');
 assert(source.includes("moneyLabel(){ return isJunior()?'Монет осталось':'Баланс'; }"),'child money label helper missing');
 assert(contentSource.includes("name:'Планшет', target:1200")&&contentSource.includes("name:'Смарт-часы', target:3000"),'new goal source data missing');
+assert(source.includes('juniorPlanProgress')&&source.includes('juniorPlanTrackerHtml'),'weekly plan is not connected to real spending feedback');
+const css=fs.readFileSync(ROOT+'/styles.css','utf8');assert(css.includes('V15 LIVE WEEKLY PLAN')&&css.includes('button[data-route="profile"]>.art{position:relative;top:3px}'),'warm text/profile icon polish missing');
 const demoText=dev.demo.periods().flatMap(p=>[p.title,p.lead,...p.steps.flatMap(s=>[s.label,s.hint])]).join(' ');
 assert(!/\b(?:резерв|финансовая цель|необходимые расходы|необязательные расходы|план\s*→\s*факт|фактическ\w*|периодический доход|распределите доход)\b/i.test(demoText),'Demo still exposes adult financial wording');
 console.log('kid_copy_goals_smoke: OK');

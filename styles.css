@@ -1,6 +1,6 @@
 :root{
-  --bg:#f4f6fb;--surface:#ffffff;--surface-2:#eef1f7;--text:#172033;--muted:#6f7788;--line:#dde2ec;
-  --primary:#5668d8;--primary-2:#7f8df0;--green:#2d9d78;--orange:#df8d34;--red:#c65a64;--shadow:0 10px 30px rgba(30,42,75,.09);
+  --bg:#fbf5ed;--surface:#fffaf4;--surface-2:#f2e7dc;--text:#3b3029;--muted:#74675f;--line:#e5d8cc;
+  --primary:#b76138;--primary-2:#d58653;--green:#4f7557;--orange:#b76138;--red:#ae4440;--shadow:0 4px 16px #6f49310b;
   --r-xl:28px;--r-lg:22px;--r-md:16px;--safe-bottom:max(16px, env(safe-area-inset-bottom));
 }
 *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#f8f9fd 0%,var(--bg) 70%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
@@ -49,7 +49,7 @@ button,input,select{font:inherit} button{cursor:pointer} .app-shell{min-height:1
 .sidejob-screen,.work-shift{padding-bottom:100px}.work-hero{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;background:linear-gradient(145deg,#e7ebef,#fafbfc);border:1px solid var(--line);border-radius:24px;padding:17px;margin-bottom:12px}.work-hero h2{font-size:20px;margin:4px 0 6px;line-height:1.15}.work-hero p{font-size:11px;color:var(--muted);margin:0;line-height:1.45}.work-energy{min-width:84px;text-align:right}.work-energy span{display:block;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.work-energy b{font-size:21px}.work-limit{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}.work-limit>span{font-size:11px;color:var(--muted)}.work-limit>b{font-size:16px}.work-limit small{grid-column:1/-1;color:var(--muted);font-size:10px}.work-dots{grid-column:1/-1;display:flex;gap:7px}.work-dots i{height:7px;flex:1;border-radius:999px;background:#e5e9ed}.work-dots i.used{background:var(--text)}.work-list{display:grid;gap:10px}.work-card{padding:15px}.work-card-main{display:grid;grid-template-columns:44px 1fr;gap:11px}.work-icon{width:44px;height:44px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;font-size:19px}.work-card h3{margin:2px 0 4px;font-size:16px}.work-card p{margin:0;color:var(--muted);font-size:10px;line-height:1.4}.work-economy{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}.work-economy span{background:var(--surface-2);border-radius:12px;padding:9px 6px;text-align:center;font-size:9px;color:var(--muted)}.work-economy b{display:block;color:var(--text);font-size:13px}.work-card button:disabled{opacity:.58;cursor:not-allowed}.shift-head{display:flex;justify-content:space-between;gap:15px;align-items:end}.shift-head h2{margin:2px 0 0;font-size:28px}.shift-pay{text-align:right;font-size:19px;font-weight:600}.shift-pay small{display:block;color:var(--muted);font-size:9px;font-weight:600}.work-progress{height:8px;margin:12px 0 18px}.work-task-card{min-height:190px;border-radius:28px;background:linear-gradient(145deg,#edf0f3,#fff);border:1px solid var(--line);display:grid;place-items:center;text-align:center;padding:20px}.work-item-icon{width:74px;height:74px;border-radius:22px;background:#fff;box-shadow:var(--shadow);display:grid;place-items:center;font-size:34px;margin-bottom:12px}.work-task-card small{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.work-task-card h2{margin:5px 0 0;font-size:22px}.work-bins{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.work-bins button{border:1px solid var(--line);border-radius:15px;background:#fff;min-height:58px;padding:8px;font-size:11px;font-weight:600;color:var(--text)}.work-bins button:active{transform:scale(.98)}.work-message{min-height:32px;border-radius:12px;padding:8px 10px;font-size:10px;margin-top:10px;background:var(--surface-2);color:var(--muted)}.work-message.ok{background:#edf8f3;color:#39735f}.work-message.miss{background:#fff3e8;color:#8b6641}.work-cancel{display:block;margin:14px auto}.work-income-summary{display:flex;justify-content:space-between;align-items:center;background:#edf8f3;border:1px solid #d7ebe2;border-radius:14px;padding:11px 13px;margin:9px 0;font-size:11px}.work-income-summary b{color:#39735f}.work-complete-sheet h2{font-size:34px}@media(max-width:390px){.work-economy{grid-template-columns:1fr 1fr}.work-economy span:last-child{grid-column:1/-1}.work-bins{grid-template-columns:1fr}.work-bins button{min-height:48px}.work-hero{grid-template-columns:1fr}.work-energy{text-align:left}}
 
 /* UX/UI refinement: presentation only; v4 state and economy retained. */
-:root{--muted:#596477;--primary:#4658bd;--primary-2:#7888dc;--shadow:0 3px 14px rgba(30,42,75,.035)}
+:root{--muted:#74675f;--primary:#b76138;--primary-2:#d58653;--shadow:0 3px 14px #6f49310b}
 body{line-height:1.45}button{touch-action:manipulation}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #6576db;outline-offset:3px}
 button:disabled{opacity:.65}.screen{padding:22px 18px 30px}.topbar{margin-bottom:20px}.topbar h1{line-height:1.18;font-size:28px}.topbar>div:first-child{min-width:0}.balance-pill{flex-shrink:0;font-variant-numeric:tabular-nums}
 .card{box-shadow:none}.section-title{margin-top:24px;align-items:center}.section-title h2{font-size:19px;font-weight:750;line-height:1.3}.section-title button,.linkbtn{min-height:44px;padding:8px}.btn{font-weight:750}.chip{min-height:44px}.home-screen>.topbar .balance-pill{display:none}
@@ -286,3 +286,19 @@ html[data-motion="on"] .pet-svg.expression-sad .pet-gaze{animation-duration:9s!i
 .mode-easy .plan-fact .pf-head b{font-size:11px}
 .mode-easy .plan-fact .pf-row span{font-weight:650}
 /* ===== END V14 ===== */
+
+
+/* ===== V15 LIVE WEEKLY PLAN + WARM TEXT ===== */
+.plan-explainer{display:grid;gap:3px;margin:2px 0 14px;padding:11px 12px;border-left:3px solid var(--primary);background:#f3e9df}
+.plan-explainer b{font-size:12px}.plan-explainer span{font-size:12px;line-height:1.4;color:var(--muted)}
+.weekly-plan-track{display:grid;border-top:1px solid var(--line)}
+.weekly-plan-track>div{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.weekly-plan-track span{font-size:13px}.weekly-plan-track b{font-size:13px;text-align:right}
+.weekly-plan-track small{grid-column:2;text-align:right;color:var(--muted);font-size:10px}
+.weekly-plan-track>div.over b,.weekly-plan-track>div.over small{color:var(--primary)}
+.plan-live-note{margin:10px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.result-box p,.insight p,.pet-week-result span,.shop-item-v2 .item-context,.event-meta span,.nav button,.tag{color:var(--muted)}
+.nav button.active{color:var(--primary)!important}
+.nav button[data-route="profile"]>.art{position:relative;top:3px}
+@media(max-width:360px){.weekly-plan-track>div{grid-template-columns:minmax(0,1fr) auto}}
+/* ===== END V15 ===== */
