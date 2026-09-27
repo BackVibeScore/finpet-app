@@ -75,6 +75,22 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk kopihvost-debug.apk
           cp android/app/build/outputs/apk/release/app-release-unsigned.apk kopihvost-release-unsigned.apk
+      - name: Sign release APK
+        run: |
+          PASS_FILE="$RUNNER_TEMP/signing-password.txt"
+          KEYSTORE="$RUNNER_TEMP/kopihvost-release.jks"
+          openssl rand -hex 24 > "$PASS_FILE"
+          PASS="$(cat "$PASS_FILE")"
+          keytool -genkeypair -noprompt -keystore "$KEYSTORE" -storepass "$PASS" -keypass "$PASS" -alias kopihvost -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=KopiHvost, OU=LCT2026, O=KopiHvost, C=RU"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/zipalign" -f -p 4 kopihvost-release-unsigned.apk kopihvost-release-aligned.apk
+          "$BUILD_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" --out kopihvost-release.apk kopihvost-release-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs kopihvost-release.apk
+          mkdir -p signing-backup
+          cp "$KEYSTORE" signing-backup/kopihvost-release.jks
+          cp "$PASS_FILE" signing-backup/signing-password.txt
+          printf 'alias=kopihvost\nversionName=0.1.1\nversionCode=2\n' > signing-backup/README.txt
+          sha256sum kopihvost-release.apk signing-backup/kopihvost-release.jks > signing-backup/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: kopihvost-debug-apk
@@ -85,5 +101,17 @@ jobs:
         with:
           name: kopihvost-release-unsigned-apk
           path: kopihvost-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kopihvost-release-signed-apk
+          path: kopihvost-release.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kopihvost-signing-backup
+          path: signing-backup/
           if-no-files-found: error
           retention-days: 30
