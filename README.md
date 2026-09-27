@@ -69,7 +69,7 @@ native current → native backup → localStorage → новый профиль
 
 Android-оболочка построена на Capacitor.
 
-- applicationId: `ru.kopihvost.app`;
+- applicationId: `ru.kopihvost.app`;\n- versionName: `0.1.1`;\n- versionCode: `2`;
 - минимальная версия: Android 8.0 / API 26;
 - ориентация: portrait;
 - runtime-файлы и изображения входят в APK;
@@ -129,4 +129,4 @@ GitHub Actions:
 
 В Git не должны попадать ключи подписи, пароли, токены, `.env`, `.jks`, `.keystore`, `local.properties` и другие секреты. Такие файлы исключены через `.gitignore`.
 
-Перед конкурсной сдачей необходимо подготовить подписанный release APK, финальный release/tag, проверить установку на физическом устройстве и убедиться, что ссылки доступны экспертам.
+Подписанный release APK версии 0.1.1 подготовлен отдельно от репозитория. Перед конкурсной сдачей остаётся создать финальный release/tag, проверить APK на физическом устройстве и убедиться, что ссылки доступны экспертам.
