@@ -15,7 +15,7 @@ npm run android:apk
 ```
 Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-Параметры: applicationId `ru.kopihvost.app`, versionName `0.1.0`, versionCode `1`, minSdk 26, portrait. Android cloud backup и cleartext traffic отключены; прогресс остаётся локальным.
+Параметры: applicationId `ru.kopihvost.app`, versionName `0.1.1`, versionCode `2`, minSdk 26, portrait. Android cloud backup и cleartext traffic отключены; прогресс остаётся локальным.
 
 ## Offline и аналитика
 Все runtime-файлы и изображения находятся внутри APK. Android-сборка не зависит от Vercel или service worker.
