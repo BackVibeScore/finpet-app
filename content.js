@@ -213,7 +213,6 @@ window.FINPET_CONTENT = {
   ]
 };
 
-// V2: расширение существующего контента без переноса образовательной логики в UI.
 (() => {
   const C = window.FINPET_CONTENT;
   C.version = 2;
@@ -431,7 +430,6 @@ window.FINPET_CONTENT = {
 })();
 
 
-// V3: custdev-driven game-depth layer. Extends V2 content without duplicating core systems.
 (() => {
   const C = window.FINPET_CONTENT;
   C.version = 3;
@@ -551,7 +549,6 @@ window.FINPET_CONTENT = {
     '15-17':['План — это ориентир, а не запрет.','Следующая неделя уже зависит от сегодняшних решений.','Пространство меняется вместе с твоими приоритетами.','Иногда выгоднее оставить себе свободу выбора.']
   };
 
-  // Convert several existing scenarios into delayed/recurring consequences instead of immediate explanations.
   const byId = Object.fromEntries(C.events.map(e => [e.id, e]));
   if (byId.e13) {
     byId.e13.choices[1] = {
@@ -598,7 +595,6 @@ window.FINPET_CONTENT = {
 })();
 
 
-// V4: optional side-job mechanic for 14–17. Extends the same economy and transaction system.
 (() => {
   const C = window.FINPET_CONTENT;
   C.version = 4;
@@ -630,7 +626,6 @@ window.FINPET_CONTENT = {
   ];
 })();
 
-// V5: non-overlapping age modes, guided help and age-appropriate cyber safety.
 (() => {
   const C = window.FINPET_CONTENT;
   C.version = 5;
@@ -758,7 +753,6 @@ window.FINPET_CONTENT = {
 })();
 
 
-/* V4: health system, richer care/food choices and social events */
 (() => {
   const C=window.FINPET_CONTENT;
   const replaceItem=(id,data)=>{const i=C.items.findIndex(x=>x.id===id);if(i>=0)C.items[i]={...C.items[i],...data};else C.items.push({id,...data});};

@@ -19,7 +19,6 @@ function base(mode='medium'){
 }
 function assert(c,m){if(!c)throw new Error(m)}
 
-// V2 migration keeps economic and world progress and lands on v6.
 let old=base('medium'); old.version=2; old.ageGroup='12-14'; delete old.difficultyMode; old.inventory=[{id:'interior_lamp',boughtAt:1}]; old.nextWeekObligations=[{amount:90,description:'Старая подписка',source:'legacy'}]; delete old.futureObligations; delete old.worldPlacements; delete old.worldProgress;
 let r=boot(old); let s=r.state();
 assert(s.version===6,'migration version');
@@ -28,26 +27,22 @@ assert(s.futureObligations.length===1 && s.futureObligations[0].amount===90,'leg
 assert(s.worldPlacements.interior_lamp?.zone==='wall-right','inventory placement migration');
 assert(s.workState && s.workState.shiftsLimit===3,'v4 workState migration missing');
 
-// Easy mode keeps the visual jar planner and child-friendly language.
 r=boot({...base('easy'),weekNeedsPlanning:true,weekPlan:null,weekSnapshot:null});
 assert(r.app.innerHTML.includes('mode-easy')||r.app.innerHTML.includes('junior-jars'),'easy presentation missing');
 assert(r.app.innerHTML.includes('На нужное')&&r.app.innerHTML.includes('Пока не трачу'),'easy language missing');
 
-// Medium mode uses the combined content/UI without exposing age.
 r=boot(base('medium'));
 assert(r.app.innerHTML.includes('mode-medium'),'medium presentation class missing');
 assert(r.app.innerHTML.includes('Дом'),'medium home title missing');
 assert(r.app.innerHTML.includes('Развитие мира'),'macro progress missing');
 assert(!r.app.innerHTML.includes('12–14')&&!r.app.innerHTML.includes('15–17'),'age leaked into user UI');
 
-// Future obligation payment remains unchanged.
 const medium=base('medium'); medium.futureObligations=[{id:'o1',type:'credit',amount:360,dueWeek:2,dueDay:1,remainingPayments:1,description:'Платёж по кредиту',sourceId:'e27',category:'Необходимые расходы',recurring:false}];
 r=boot(medium); r.sandbox.window.FINPET_DEV.processDueObligations({showModal:false}); s=r.state();
 assert(s.wallet.balance===640,'future obligation not charged');
 assert(s.futureObligations.length===0,'one-time obligation not cleared');
 assert(s.transactions.some(t=>t.description==='Платёж по кредиту'&&t.amount===-360),'obligation transaction missing');
 
-// Macro stage logic is preserved.
 const late=base('medium'); late.weekHistory=Array.from({length:5},(_,i)=>({week:i+1})); late.worldProgress={stage:1,areas:['home'],unlocks:[],decor:[]};
 r=boot(late); s=r.state();
 assert(s.worldProgress.stage>=4,'macro stage did not unlock');

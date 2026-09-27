@@ -15,26 +15,21 @@ const t=s.transactions.find(x=>x.source==='work_shift');
 assert(t&&t.type==='income'&&t.category==='Подработка'&&t.amount===120,'work Transaction invalid');
 assert(dev.actualsForWeek().sideJobIncome===120,'side-job income missing from weekly actuals');
 ['side_job_started','side_job_completed','side_job_income_received'].forEach(name=>assert(s.analytics.some(x=>x.name===name),`analytics missing ${name}`));
-// One shift per game day, three per week.
 dev.actions.advanceDay();finishShift(dev);dev.actions.advanceDay();finishShift(dev);s=dev.getState();
 assert(s.workState.shiftsUsed===3,'three-shift weekly limit not reached');
 assert(s.wallet.balance===610,'three shifts must add exactly 360');
 dev.work.start('sort_orders');s=dev.getState();
 assert(!s.workSession,'fourth shift should be blocked');
 assert(s.analytics.some(x=>x.name==='side_job_limit_reached'),'weekly-limit analytics missing');
-// Week summary includes separate side-job fact.
 dev.actions.completeWeek();s=dev.getState();
 assert(s.weekSummary.actual.sideJobIncome===360,'week summary lost side-job income');
-// New week resets only the shift counter, not wallet history.
 dev.actions.startNextWeek();s=dev.getState();
 assert(s.workState.week===3&&s.workState.shiftsUsed===0,'weekly work counter did not reset');
 assert(s.transactions.filter(x=>x.source==='work_shift').length===3,'work history was lost');
-// Energy block is neutral and creates no income.
 r=boot(seed(10));dev=r.dev;dev.work.start('sort_orders');s=dev.getState();
 assert(!s.workSession,'low-energy shift should not start');
 assert(s.wallet.balance===250,'low-energy block changed balance');
 assert(s.analytics.some(x=>x.name==='side_job_energy_blocked'),'energy-block analytics missing');
-// Cancellation has no reward or energy cost.
 r=boot(seed());dev=r.dev;dev.work.start('sort_orders');dev.work.cancel();s=dev.getState();
 assert(!s.workSession&&s.wallet.balance===250&&s.pet.energy===80,'cancelled shift changed economy');
 assert(s.analytics.some(x=>x.name==='side_job_cancelled'),'cancel analytics missing');

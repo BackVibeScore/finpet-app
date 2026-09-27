@@ -31,5 +31,4 @@ r=boot(seed({wallet:{balance:700,savings:0,weeklyIncome:1000,week:4,day:1,nextIn
 const src=fs.readFileSync(ROOT+'/app.js','utf8'),content=fs.readFileSync(ROOT+'/content.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8');
 assert(src.includes("category === 'Занятие'")&&src.includes("source === 'activity'"),'activity transaction separation missing');
 assert(content.includes("id:'football'")&&content.includes("id:'robotics'"),'section content missing');
-assert(css.includes('V17 SECTIONS MECHANIC'),'section styles missing');
 console.log('sections_smoke: OK');

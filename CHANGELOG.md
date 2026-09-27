@@ -1,3 +1,13 @@
+## V6.3 — repository cleanup
+
+- Актуализированы README, TEST_REPORT и KNOWN_LIMITATIONS под текущую архитектуру easy / medium / demo.
+- Убраны устаревшие прямые runtime-проверки режима 15–17; усложнённый сценарий теперь определяется через difficultyMode=medium.
+- Исправлен legacy-тест service worker: он больше не привязан к конкретному старому номеру cache.
+- Удалён неиспользуемый standalone-сборщик старой demo-v5 версии.
+- Усилен repository hygiene test.
+- Android workflow очищен от устаревшей feature-ветки и переведён на npm ci.
+- Расширен .gitignore для секретов и signing-файлов.
+
 ## V6.1 — бренд «КопиХвост»
 
 - Пользовательское название «ФинПитомец» заменено на «КопиХвост» в splash, onboarding, PWA metadata и пользовательских текстах.

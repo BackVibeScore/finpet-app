@@ -25,7 +25,6 @@ vm.createContext(sandbox); vm.runInContext(fs.readFileSync(__dirname+'/../storag
   assert(JSON.parse(native[key]).wallet.balance===250,'native save failed');
   assert(JSON.parse(native[key+'_backup']).wallet.balance===100,'backup was not preserved');
 
-  // Simulate a hard kill after synchronous localStorage save but before native write.
   const newer={wallet:{balance:333},pet:{type:'cat'},version:6};
   data[key]=JSON.stringify(newer); data[meta]=String(Number(native[meta])+10);
   r=await sandbox.FINPET_STORAGE.ready(key);

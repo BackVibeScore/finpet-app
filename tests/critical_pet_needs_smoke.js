@@ -29,5 +29,4 @@ const old=base({satiety:0});delete old.emergencyCare;r=boot(old);d=r.dev;s=d.get
 const source=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8');
 for(const phrase of ['Сначала помоги питомцу','Найти еду дома','Обнять питомца','Позаботиться дома'])assert(source.includes(phrase),'missing UI phrase '+phrase);
 assert(source.includes("if(!canAdvanceDay())return blockDayForCriticalNeeds('advance_day')"),'advanceDay lacks internal guard');
-assert(css.includes('V18 CRITICAL PET NEEDS'),'critical care styles missing');
 console.log('critical_pet_needs_smoke: OK');

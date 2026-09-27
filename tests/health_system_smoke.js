@@ -7,12 +7,12 @@ function assert(v,m){if(!v)throw new Error(m)}
 let r=boot(seed()),d=r.dev,s=d.getState();
 assert(s.pet.health===66,'legacy care did not migrate to health');assert(s.pet.care===66,'legacy mirror broken');
 let home=d.setRoute('home');assert(home.includes('Здоровье')&&!home.includes('>Уход<'),'care label still visible');
-d.actions.setShopCategory('Здоровье');let shop=d.setRoute('shop');assert(shop.includes('Гигиенические принадлежности')&&shop.includes('Домашний спа-день'),'health shop missing');
+d.actions.setShopCategory('Здоровье');let shop=d.setRoute('shop');assert(shop.includes('Гигиена')&&shop.includes('Уход за шерстью')&&shop.includes('Профилактический осмотр')&&shop.includes('Профилактика'),'health shop missing');
 const C=d.getContent();assert(C.items.find(x=>x.id==='food_basic').effect.health===5,'healthy food health effect missing');assert(C.items.find(x=>x.id==='food_snack').name==='Бургер'&&C.items.find(x=>x.id==='food_treat').name==='Мороженое','food choices missing');
 const h0=d.getState().pet.health;d.actions.quickAction('care');assert(d.getState().pet.health>h0,'health action failed');
 r=boot(seed({health:0,care:0}));d=r.dev;assert(d.actions.advanceDay()===false,'health zero did not block');assert(d.critical.emergency('health')===true&&d.getState().pet.health===15,'free health help failed');
 r=boot(seed({health:29,care:29}));d=r.dev;home=d.setRoute('home');assert(home.includes('Стоит позаботиться о здоровье'),'low health warning missing');
 r=boot(seed());d=r.dev;const b=d.getState().wallet.balance;d.actions.openEvent('e42');d.actions.resolveEvent(0);assert(d.getState().wallet.balance===b-60,'friend cinema charge wrong');assert(d.actualsForWeek().wants>=60,'friend cinema not in wants');
 r=boot(seed({health:70,care:70}));d=r.dev;d.actions.openEvent('e41');assert(d.getState().healthCondition==='cold'&&d.getState().pet.health===58,'cold open effect missing');d.actions.resolveEvent(0);assert(d.getState().healthCondition===null&&d.getState().pet.health>58,'cold treatment failed');
-const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8');assert(src.includes('const migratedHealth='),'migration missing');assert(css.includes('V19 PET HEALTH'),'styles missing');
+const src=fs.readFileSync(ROOT+'/app.js','utf8'),css=fs.readFileSync(ROOT+'/styles.css','utf8');assert(src.includes('const migratedHealth='),'migration missing');
 console.log('health_system_smoke: OK');

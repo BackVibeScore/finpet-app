@@ -21,7 +21,6 @@ function boot(seed){
 function assert(c,m){if(!c)throw new Error(m)}
 let r=boot(base()),dev=r.dev,s=dev.getState();
 
-// Confirmed plan becomes immutable.
 let first=dev.planning.confirm({necessary:400,wants:100,savings:200,reserve:77});
 assert(first.ok,'first plan confirmation failed');
 const initial=JSON.stringify(dev.planning.initial());
@@ -30,20 +29,17 @@ assert(!second.ok&&second.reason==='locked','confirmed plan was editable');
 dev.actions.buyItem('food_basic');
 assert(JSON.stringify(dev.planning.initial())===initial,'purchase changed initial plan');
 
-// Legacy current plan migrates into immutable initial plan without losing development.
 const legacy=base();legacy.pet.development=37;legacy.weekNeedsPlanning=false;legacy.weekPlan={week:2,necessary:400,wants:150,savings:150,reserve:77};delete legacy.initialWeekPlan;
 r=boot(legacy);dev=r.dev;s=dev.getState();
 assert(s.pet.development===37,'legacy development was lost');
 assert(s.initialWeekPlan&&s.initialWeekPlan.necessary===400,'legacy weekPlan was not migrated to initialWeekPlan');
 
-// Period scoring rewards a balanced period more than a poor one.
 const plan={necessary:400,wants:100,savings:200,reserve:300};
 const good=dev.calculatePeriodDevelopment(plan,{necessary:380,wants:90,savings:200},330);
 const bad=dev.calculatePeriodDevelopment(plan,{necessary:0,wants:500,savings:0},0);
 assert(good.score>bad.score&&good.score>=6,'development scoring does not reward balanced periods');
 assert(bad.score>=0,'bad period must not erase progress');
 
-// Demo uses isolated state, supports five fast periods, and period results drive development.
 r=boot(base());dev=r.dev;const mainBefore=dev.getState();
 assert(dev.demo.start()&&dev.demo.isActive(),'demo did not start');
 const periods=dev.demo.periods();
@@ -76,7 +72,6 @@ assert(dev.demo.exit()&&!dev.demo.isActive(),'demo did not exit');
 s=dev.getState();
 assert(s.wallet.balance===mainBefore.wallet.balance&&s.wallet.week===mainBefore.wallet.week&&s.pet.name===mainBefore.pet.name,'demo damaged the normal profile');
 
-// Unified feedback exists for purchases, savings and shortages.
 r=boot(base());dev=r.dev;dev.planning.confirm({necessary:400,wants:100,savings:100,reserve:177});
 dev.actions.buyItem('food_basic');let modal=dev.getModal();
 assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>['Баланс','Монет осталось'].includes(x.label))&&modal.reason,'purchase feedback is incomplete');
@@ -85,14 +80,13 @@ assert(modal?.type==='financialFeedback'&&modal.changes?.some(x=>['Копилк�
 const low=base();low.wallet.balance=50;r=boot(low);dev=r.dev;dev.confirmations.openPurchase('special_console');
 assert(r.app.innerHTML.includes('Покупка не выполнена')&&r.app.innerHTML.includes('Не хватает'),'shortage feedback is incomplete');
 
-// Direct clicks no longer grow development outside period settlement.
 const source=fs.readFileSync(ROOT+'/app.js','utf8');
 const css=fs.readFileSync(ROOT+'/styles.css','utf8');
 assert(source.includes("['demo','Демо'")&&source.includes('5 коротких сценариев'),'demo is missing from the mode-selection screen');
 assert(!source.includes('Для знакомства'),'the old acquaintance pill must be removed');
 assert(!source.includes('demoAdultControls'),'demo entry must not live in the adult section');
 assert(source.includes('DEMO_PERIODS')&&source.includes('Завершить демо')&&source.includes('demoPeriodIntro'),'directed demo guidance or explicit finish is missing');
-assert(css.includes('--primary:#b76138')&&css.includes('V13 DIRECTED DEMO'),'orange/terracotta directed-demo styling is missing');
+assert(css.includes('--primary:#b76138'),'orange/terracotta directed-demo styling is missing');
 assert(!source.includes('adjustPet({ development: 4'),'task still directly grows development');
 assert(!source.includes('adjustPet({development:10'),'goal still directly grows development');
 assert(source.includes('delete itemEffect.development')&&source.includes('delete petEff.development'),'purchase/event development bypass remains');

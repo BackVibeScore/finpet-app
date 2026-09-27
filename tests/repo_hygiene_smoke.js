@@ -17,6 +17,7 @@ req(!/@keyframes\s+adultHold\b/.test(css),'legacy adultHold keyframes remain');
 req(!app.includes("[data-adult-hold]")&&!app.includes('adultHoldTimer')&&!app.includes('adultHoldStartedAt'),'legacy adult-hold runtime binding remains');
 
 req(app.includes("function ageModeClass(){ return `mode-${state.difficultyMode||'easy'}`; }"),'difficulty mode class contract changed');
+req(!app.includes("state.ageGroup==='15-17'")&&!app.includes("state.ageGroup === '15-17'"),'retired direct 15-17 runtime branch remains');
 req(app.includes('parent-quiz-screen')&&app.includes('parent-answer'),'current arithmetic parent gate missing');
 req(app.includes("const STORAGE_KEY = 'finpet_mvp_state_v1'"),'storage key changed');
 req((app.match(/function\s+petSVG\s*\(/g)||[]).length===1,'petSVG must have exactly one active declaration');

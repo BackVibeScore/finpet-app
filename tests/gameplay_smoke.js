@@ -7,19 +7,16 @@ let sb=boot(seed()); let dev=sb.window.FINPET_DEV;
 dev.actions.buyItem('interior_lamp'); let s=dev.getState();
 assert(s.worldPlacements.interior_lamp?.zone==='wall-right','bought world item not placed');
 assert(s.analytics.some(x=>x.name==='world_item_unlocked'),'world item analytics missing');
-// Complete long-term goal using the existing savings system; target 1200, 1100 already saved.
 dev.actions.saveAmount(100); s=dev.getState();
 assert(s.completedGoals.includes('home'),'goal not completed');
 assert(s.wallet.savings===0,'goal funds were not consumed');
 assert(s.worldProgress.decor.includes('comfort'),'goal did not change world');
 assert(s.activeGoal===null,'completed goal remained active');
 assert(s.analytics.some(x=>x.name==='long_term_goal_completed'),'goal completion analytics missing');
-// Recurring obligation schedules the next payment instead of disappearing.
 let st=seed('15-17'); st.futureObligations=[{id:'sub',type:'subscription',amount:120,dueWeek:4,dueDay:1,remainingPayments:3,description:'Автопродление',sourceId:'e24',category:'Желания',recurring:true}];
 sb=boot(st);dev=sb.window.FINPET_DEV;dev.processDueObligations({showModal:false});s=dev.getState();
 assert(s.wallet.balance===1380,'recurring charge not applied');
 assert(s.futureObligations.length===1&&s.futureObligations[0].dueWeek===5&&s.futureObligations[0].remainingPayments===2,'recurring payment not rescheduled');
-// Story chain reuses existing events after macro unlock.
 st=seed('12-14'); st.currentEventId='e12'; st.worldProgress={stage:3,areas:['home','park'],unlocks:[],decor:[]};
 sb=boot(st);dev=sb.window.FINPET_DEV;dev.actions.advanceDay();s=dev.getState();
 assert(s.storyChains.festival_chain,'festival chain not started');

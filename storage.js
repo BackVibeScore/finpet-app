@@ -38,8 +38,6 @@
     const local = localStorage.getItem(key);
     const localMeta = revision(localStorage.getItem(metaKey));
 
-    // localStorage is updated synchronously, so after a hard kill it may be one write
-    // ahead of Preferences. A monotonic sidecar revision prevents losing that last save.
     if (isValidRaw(local) && localMeta > nativeMeta) {
       if (isValidRaw(current) && current !== local) {
         await native.set(backupKey, current);

@@ -28,7 +28,7 @@ esbuild.buildSync({
 });
 
 let html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
-html=html.replace(/\s*<!-- Yandex\.Metrika counter -->[\s\S]*?<!-- \/Yandex\.Metrika counter -->\s*/,'\n');
+html=html.replace(/\s*<script type="text\/javascript">[\s\S]*?mc\.yandex\.ru\/metrika\/tag\.js[\s\S]*?<\/script>\s*/,'\n');
 html=html.replace(/\s*<noscript><div><img src="https:\/\/mc\.yandex\.ru\/watch\/112756217"[\s\S]*?<\/noscript>\s*/,'\n');
 html=html.replace(/\s*<script src="content\.js[^"]*"><\/script>[\s\S]*?<script src="welcome\.js[^"]*"><\/script>\s*/,
   '\n  <script src="android-native.js"></script>\n  <script src="content.js?v=20260918g"></script>\n  <script src="analytics.js?v=20260918h"></script>\n  <script src="storage.js?v=20260918h"></script>\n  <script src="android-boot.js?v=20260918h"></script>\n');
