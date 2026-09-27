@@ -3,7 +3,7 @@
   const STORAGE_KEY = 'finpet_mvp_state_v1';
   const DEMO_STORAGE_KEY = 'finpet_demo_state_v1';
   const app = document.getElementById('app');
-  const APP_VERSION = '0.1.0';
+  const APP_VERSION = '0.1.1';
   const VERSION_TAP_LIMIT = 7;
   let versionTapCount = 0;
   let versionTapTimer = null;
@@ -1623,7 +1623,7 @@
 
   function renderModal() {
     if(modal.type==='appInfo'){
-      return `<div class="overlay" data-close-overlay><div class="sheet app-info-sheet" data-sheet><div class="sheet-handle"></div><div class="app-info-mark">🐾</div><div class="eyebrow">О приложении</div><h2>КопиХвост</h2><p class="app-info-tagline">Сделано с хвостом.</p><div class="app-info-credit"><span>Идея, продукт и разработка</span><b>Алексей Левин</b><a href="https://mindlevin.ru" target="_blank" rel="noopener noreferrer">mindlevin.ru</a></div><p class="app-info-year">2026</p><button class="btn primary block" data-close-modal>Вернуться в игру</button></div></div>`;
+      return `<div class="overlay" data-close-overlay><div class="sheet app-info-sheet" data-sheet><div class="sheet-handle"></div><div class="app-info-mark"><img src="favicon.svg" alt=""></div><div class="eyebrow">О приложении</div><h2>КопиХвост</h2><p class="app-info-tagline">Сделано с хвостом.</p><div class="app-info-credit"><span>Идея, продукт и разработка</span><b>Алексей Левин</b><a href="https://mindlevin.ru" target="_blank" rel="noopener noreferrer">mindlevin.ru</a></div><p class="app-info-year">2026</p><button class="btn primary block" data-close-modal>Вернуться в игру</button></div></div>`;
     }
     if(modal.type==='demoPeriodIntro'){
       const n=Math.max(1,Math.min(DEMO_PERIODS.length,Number(modal.period||state.wallet.week))),p=DEMO_PERIODS[n-1];

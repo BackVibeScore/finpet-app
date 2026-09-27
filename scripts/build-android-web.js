@@ -3,7 +3,7 @@ const path=require('path');
 const esbuild=require('esbuild');
 const ROOT=path.resolve(__dirname,'..');
 const OUT=path.join(ROOT,'dist','android');
-const files=['index.html','styles.css','welcome.css','content.js','app.js','welcome.js','storage.js','analytics.js','manifest.json','sw.js'];
+const files=['index.html','styles.css','welcome.css','content.js','app.js','welcome.js','storage.js','analytics.js','manifest.json','sw.js','favicon.svg'];
 
 function copyFile(rel){
   const src=path.join(ROOT,rel), dst=path.join(OUT,rel);
@@ -35,6 +35,6 @@ html=html.replace(/\s*<script src="content\.js[^"]*"><\/script>[\s\S]*?<script s
 if(/mc\.yandex\.ru|\bym\s*\(/.test(html)) throw new Error('Yandex Metrika leaked into Android build');
 fs.writeFileSync(path.join(OUT,'index.html'),html);
 
-const required=['index.html','styles.css','welcome.css','content.js','app.js','welcome.js','storage.js','analytics.js','android-native.js','android-boot.js','assets/kopihvost-splash.webp','assets/onboarding-1.webp','assets/onboarding-2.webp','assets/onboarding-3.webp','assets/onboarding-4.webp','assets/objects.webp','assets/extras.webp','assets/worlds.webp'];
+const required=['index.html','styles.css','welcome.css','content.js','app.js','welcome.js','storage.js','analytics.js','android-native.js','android-boot.js','favicon.svg','assets/kopihvost-splash.webp','assets/onboarding-1.webp','assets/onboarding-2.webp','assets/onboarding-3.webp','assets/onboarding-4.webp','assets/objects.webp','assets/extras.webp','assets/worlds.webp'];
 for(const rel of required) if(!fs.existsSync(path.join(OUT,rel))) throw new Error('Missing Android asset: '+rel);
 console.log('Android web bundle ready:',OUT);

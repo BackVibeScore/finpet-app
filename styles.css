@@ -822,8 +822,9 @@ html[data-motion="off"] .nav-profile-icon{transition:none!important}
 .app-info-sheet{text-align:center;padding-top:18px}
 .app-info-sheet .app-info-mark{
   width:72px;height:72px;margin:2px auto 14px;border-radius:24px;
-  display:grid;place-items:center;background:#f1d8c8;font-size:34px;
+  display:grid;place-items:center;overflow:hidden;
 }
+.app-info-sheet .app-info-mark img{display:block;width:72px;height:72px}
 .app-info-sheet h2{margin:5px 0 2px;font-size:30px}
 .app-info-tagline{margin:0 0 22px!important;color:var(--text)!important;font-weight:600}
 .app-info-credit{
