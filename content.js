@@ -761,10 +761,10 @@ window.FINPET_CONTENT = {
   replaceItem('food_treat',{category:'Еда',name:'Мороженое',price:25,need:false,effect:{satiety:8,mood:10},icon:'🍦'});
   replaceItem('care_wash',{category:'Здоровье',name:'Гигиена',price:60,need:true,effect:{health:15},icon:'🫧',subline:'Ежедневная гигиена'});
   replaceItem('care_brush',{category:'Здоровье',name:'Уход за шерстью',price:40,need:true,effect:{health:10,mood:5},icon:'✂️',subline:'Регулярный уход'});
-  replaceItem('care_spa',{category:'Здоровье',name:'Профилактический осмотр',price:90,need:true,effect:{health:20},icon:'🩺',subline:'Проверить здоровье'});
+  replaceItem('care_spa',{category:'Здоровье',name:'Профилактический осмотр',price:90,need:false,effect:{health:20},icon:'🩺',subline:'Проверить здоровье'});
   replaceItem('health_syrup',{category:'Здоровье',name:'Сироп от простуды',price:40,need:true,effect:{health:20},icon:'🥄',condition:'cold',cures:'cold',subline:'Когда питомец простудился'});
   replaceItem('health_tablets',{category:'Здоровье',name:'Таблетки',price:30,need:true,effect:{health:15},icon:'💊',condition:'cold',cures:'cold',subline:'Когда питомец простудился'});
-  replaceItem('health_vaccine',{category:'Здоровье',name:'Профилактика',price:75,need:true,effect:{health:25},icon:'🛡️',preventive:true,subline:'Защита от болезней'});
+  replaceItem('health_vaccine',{category:'Здоровье',name:'Профилактика',price:75,need:false,effect:{health:25},icon:'🛡️',preventive:true,subline:'Защита от болезней'});
   replaceItem('game_cinema',{category:'Игры',name:'Поход в кино',price:60,need:false,effect:{mood:20},icon:'🎬'});
 
   for(const e of C.events||[]){
