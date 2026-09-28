@@ -1,49 +1,138 @@
-# Android build — КопиХвост
+# Сборка Android — КопиХвост
 
-Android-версия — Capacitor-оболочка существующего HTML/CSS/JS приложения. Игровая логика не дублируется.
+Android-версия «КопиХвоста» построена на Capacitor поверх общего HTML/CSS/JavaScript-ядра. Отдельная копия игровой логики для Android не создаётся: веб-версия и APK используют одни и те же основные механики и контент.
 
-## Требования
-- Node.js 22+
-- JDK 21
-- Android SDK
-- npm
+## Требования к окружению
 
-## Сборка
+Для локальной сборки необходимы:
+
+- Node.js 22 или новее;
+- npm;
+- JDK 21;
+- Android SDK;
+- настроенная переменная окружения Android SDK для вашей системы.
+
+## Установка зависимостей
+
 ```bash
-npm install
+npm ci
+```
+
+Используется `npm ci`, чтобы установка соответствовала зафиксированному `package-lock.json`.
+
+## Сборка debug APK
+
+```bash
 npm run android:apk
 ```
-Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-Параметры: applicationId `ru.kopihvost.app`, versionName `0.1.1`, versionCode `2`, minSdk 26, portrait. Android cloud backup и cleartext traffic отключены; прогресс остаётся локальным.
+Команда выполняет подготовку веб-ресурсов, синхронизацию Capacitor, настройку Android-проекта и Gradle-сборку.
 
-## Offline и аналитика
-Все runtime-файлы и изображения находятся внутри APK. Android-сборка не зависит от Vercel или service worker.
-Яндекс.Метрика удаляется из Android `index.html` на этапе сборки. AppMetrica пока не подключена.
+Готовый файл:
 
-## Сохранения
-Ключ совместимости остаётся `finpet_mvp_state_v1`.
-На Android Capacitor Preferences хранит основной долговременный state, а `localStorage` остаётся синхронным mirror-слоем для существующей логики.
-Порядок восстановления: native current → native backup → старый localStorage → новый профиль.
-Резервный ключ: `finpet_mvp_state_v1_backup`.
-
-Удаление приложения или Android → «Очистить данные» удалит локальный прогресс. Restart, force stop, reboot и обновление APK поверх той же applicationId — не должны.
-
-## Проверка обновления
-1. Установить v1, создать профиль и изменить прогресс.
-2. Force stop и повторный запуск.
-3. Перезагрузить устройство и проверить прогресс.
-4. Увеличить versionCode, собрать v2 и выполнить `adb install -r app-debug.apk`.
-5. Проверить профиль.
-
-## Release signing
-Создайте keystore вне репозитория:
-```bash
-keytool -genkeypair -v -keystore kopihvost-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias kopihvost
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
 ```
-Не коммитьте `.jks`, `.keystore`, пароли или signing properties. Используйте локальные Gradle properties или CI secrets.
 
-## AppMetrica
-Точка расширения: `window.FINPET_ANALYTICS.event(name, params)`. Сейчас Android adapter no-op; позже сюда подключается AppMetrica.
+## Параметры приложения
 
-Release unsigned APK собирается командой `cd android && ./gradlew assembleRelease` и появляется в `android/app/build/outputs/apk/release/app-release-unsigned.apk`.
+- applicationId: `ru.kopihvost.app`;
+- versionName: `0.1.1`;
+- versionCode: `2`;
+- minSdk: `26` (Android 8.0);
+- ориентация: portrait;
+- Android cloud backup отключён;
+- cleartext traffic отключён.
+
+Игровые ресурсы включаются в приложение при сборке. Основной игровой сценарий не зависит от внешнего сервера.
+
+## Аналитика
+
+Публичная веб-версия может содержать Яндекс.Метрику.
+
+При подготовке Android-пакета соответствующий код удаляется из `index.html`. AppMetrica в текущей версии не подключена.
+
+Для будущего подключения мобильной аналитики предусмотрена точка расширения:
+
+```js
+window.FINPET_ANALYTICS.event(name, params)
+```
+
+В текущей Android-версии этот адаптер не отправляет события во внешние сервисы.
+
+## Сохранение прогресса
+
+Ключ совместимости:
+
+```text
+finpet_mvp_state_v1
+```
+
+На Android основное состояние хранится через Capacitor Preferences. Для совместимости с веб-логикой также поддерживается локальная копия в `localStorage`.
+
+Порядок восстановления:
+
+```text
+Capacitor Preferences
+→ резервная копия
+→ localStorage
+→ новый профиль
+```
+
+Резервный ключ:
+
+```text
+finpet_mvp_state_v1_backup
+```
+
+Обычное закрытие приложения, принудительная остановка, перезагрузка устройства и обновление APK поверх той же `applicationId` не должны удалять прогресс.
+
+Удаление приложения или системное действие «Очистить данные» удаляют локальный профиль.
+
+## Проверка обновления APK
+
+1. Установить первую сборку и создать профиль.
+2. Изменить игровой прогресс.
+3. Закрыть приложение и запустить снова.
+4. Выполнить force stop и повторный запуск.
+5. Перезагрузить устройство и проверить данные.
+6. Увеличить `versionCode`.
+7. Собрать новую версию.
+8. Установить её поверх предыдущей:
+
+```bash
+adb install -r app-debug.apk
+```
+
+9. Проверить сохранность профиля и прогресса.
+
+## Release-сборка
+
+Unsigned release APK:
+
+```bash
+npm run android:sync
+cd android
+./gradlew assembleRelease
+```
+
+Результат:
+
+```text
+android/app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+## Подпись релиза
+
+Keystore необходимо создавать и хранить вне репозитория:
+
+```bash
+keytool -genkeypair -v \
+  -keystore kopihvost-release.jks \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -alias kopihvost
+```
+
+Не добавляйте в Git файлы `.jks`, `.keystore`, пароли и параметры подписи. Для автоматизированной сборки используйте защищённые секреты CI, для локальной — локальные Gradle properties.
