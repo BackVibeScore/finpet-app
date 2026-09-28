@@ -73,10 +73,10 @@ finpet_mvp_state_v1
 Порядок восстановления:
 
 ```text
-Capacitor Preferences
-→ резервная копия
-→ localStorage
-→ новый профиль
+1. Capacitor Preferences.
+2. Резервная копия состояния.
+3. localStorage.
+4. Новый профиль.
 ```
 
 Резервный ключ:

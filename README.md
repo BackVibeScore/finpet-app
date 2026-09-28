@@ -100,10 +100,10 @@ finpet_mvp_state_v1
 Порядок восстановления данных на Android:
 
 ```text
-Capacitor Preferences
-→ резервная копия
-→ localStorage
-→ новый профиль
+1. Capacitor Preferences.
+2. Резервная копия состояния.
+3. localStorage.
+4. Новый профиль.
 ```
 
 Синхронизация между устройствами в текущей версии не предусмотрена.
@@ -161,6 +161,12 @@ npm run android:apk
 
 ## Документация
 
+- [ARCHITECTURE.md](ARCHITECTURE.md) — архитектура, компоненты и технологический стек;
+- [DATA_MODEL.md](DATA_MODEL.md) — структура профиля, экономики, заданий и прогресса;
+- [REQUIREMENTS_MATRIX.md](REQUIREMENTS_MATRIX.md) — соответствие требованиям задачи;
+- [ECONOMY_RULES.md](ECONOMY_RULES.md) — правила бюджета, наград, состояния и роста питомца;
+- [EDUCATIONAL_CONTENT.md](EDUCATIONAL_CONTENT.md) — карта образовательного контента;
+- [DEMO_GUIDE.md](DEMO_GUIDE.md) — сценарий демонстрации решения;
 - [BUILD_ANDROID.md](BUILD_ANDROID.md) — требования и сборка Android;
 - [TEST_REPORT.md](TEST_REPORT.md) — контур автоматических и ручных проверок;
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — ограничения текущей версии;
